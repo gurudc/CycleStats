@@ -141,7 +141,7 @@ def backup_streams(limit: int = 50, db = Depends(get_db), client: StravaClient =
 
 
 @router.get("/status")
-def strava_status():
+def strava_status(_session = Depends(require_session)):
     """Check if Strava is connected."""
     import os, json
     state_path = "/opt/cyclestats/backend/data/strava_state.json"
@@ -174,7 +174,7 @@ def strava_connect(token: str = Query(None), _session=Depends(require_session)):
 
 
 @router.get("/setup-instructions")
-def strava_setup_instructions():
+def strava_setup_instructions(_session = Depends(require_session)):
     """Get instructions for setting up your own Strava API application."""
     return {
         "steps": [
@@ -200,7 +200,7 @@ def strava_setup_instructions():
 
 
 @router.get("/auth-url")
-def strava_auth_url(client: StravaClient = Depends(get_strava)):
+def strava_auth_url(client: StravaClient = Depends(get_strava),         _session = Depends(require_session)):
     """Get Strava OAuth authorization URL."""
     from urllib.parse import quote
     redirect_uri = "https://cyclestats.colahan.cc/api/strava/callback"
@@ -208,7 +208,7 @@ def strava_auth_url(client: StravaClient = Depends(get_strava)):
     return {"auth_url": url, "redirect_uri": redirect_uri, "note": "If you get a redirect_uri error, see /api/strava/setup-instructions"}
 
 @router.get("/callback")
-def strava_callback(code: str = None, error: str = None, client: StravaClient = Depends(get_strava)):
+def strava_callback(code: str = None, error: str = None, client: StravaClient = Depends(get_strava),         _session = Depends(require_session)):
     """Handle Strava OAuth callback."""
     from fastapi.responses import HTMLResponse
     if error:
@@ -243,7 +243,7 @@ def strava_callback(code: str = None, error: str = None, client: StravaClient = 
         )
 
 @router.get("/me")
-def strava_me(client: StravaClient = Depends(get_strava)):
+def strava_me(client: StravaClient = Depends(get_strava),         _session = Depends(require_session)):
     """Get current Strava athlete info."""
     try:
         athlete = client.get_athlete()

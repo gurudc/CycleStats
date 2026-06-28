@@ -1,3 +1,4 @@
+from routers.auth import require_session
 # Segments router - Strava-style segments with auto-detection
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -38,11 +39,11 @@ def cluster_points(points, threshold=0.01):
     return clusters
 
 @router.get("/", response_model=List[dict])
-def list_segments():
+def list_segments(_session = Depends(require_session)):
     return SEGMENTS
 
 @router.post("/auto-detect")
-def auto_detect_segments(db: Session = Depends(get_db), min_occurrences: int = 2):
+def auto_detect_segments(db: Session = Depends(get_db), min_occurrences: int = 2,         _session = Depends(require_session)):
     """Auto-detect segments from activity start/end points."""
     global SEGMENTS
     try:
@@ -131,7 +132,7 @@ def auto_detect_segments(db: Session = Depends(get_db), min_occurrences: int = 2
         return {'error': str(e)}
 
 @router.get("/{segment_id}/leaderboard")
-def get_leaderboard(segment_id: int, db: Session = Depends(get_db)):
+def get_leaderboard(segment_id: int, db: Session = Depends(get_db),         _session = Depends(require_session)):
     segment = next((s for s in SEGMENTS if s['id'] == segment_id), None)
     if not segment:
         return {"segment": None, "results": []}
@@ -180,7 +181,7 @@ def get_leaderboard(segment_id: int, db: Session = Depends(get_db)):
 
 @router.post("/")
 def create_segment(name: str, sport: str = "cycling", start_lat: float = 0, start_lng: float = 0, 
-                  end_lat: float = 0, end_lng: float = 0, distance_m: float = 0):
+                  end_lat: float = 0, end_lng: float = 0, distance_m: float = 0,         _session = Depends(require_session)):
     global SEGMENTS
     new_id = max([s['id'] for s in SEGMENTS], default=0) + 1
     segment = {
@@ -197,7 +198,7 @@ def create_segment(name: str, sport: str = "cycling", start_lat: float = 0, star
     return segment
 
 @router.delete("/{segment_id}")
-def delete_segment(segment_id: int):
+def delete_segment(segment_id: int,         _session = Depends(require_session)):
     global SEGMENTS
     SEGMENTS = [s for s in SEGMENTS if s['id'] != segment_id]
     return {"success": True}

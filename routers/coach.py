@@ -1,3 +1,4 @@
+from routers.auth import require_session
 from fastapi import APIRouter, Depends, HTTPException
 from database import get_db, CoachNote
 from sqlalchemy.orm import Session
@@ -7,7 +8,7 @@ import json
 router = APIRouter(prefix="/api/coach", tags=["coach"])
 
 @router.get("/latest")
-def get_latest_note(db: Session = Depends(get_db)):
+def get_latest_note(db: Session = Depends(get_db),         _session = Depends(require_session)):
     """Get the most recent coach note."""
     note = db.query(CoachNote).order_by(CoachNote.id.desc()).first()
     if not note:
@@ -20,7 +21,7 @@ def get_latest_note(db: Session = Depends(get_db)):
     }
 
 @router.get("/history")
-def get_coach_history(limit: int = 10, db: Session = Depends(get_db)):
+def get_coach_history(limit: int = 10, db: Session = Depends(get_db),         _session = Depends(require_session)):
     """Get recent coach notes."""
     notes = db.query(CoachNote).order_by(CoachNote.id.desc()).limit(limit).all()
     return [{
@@ -31,7 +32,7 @@ def get_coach_history(limit: int = 10, db: Session = Depends(get_db)):
     } for n in notes]
 
 @router.post("/note")
-def create_coach_note(body: dict, db: Session = Depends(get_db)):
+def create_coach_note(body: dict, db: Session = Depends(get_db),         _session = Depends(require_session)):
     """Save a coach note (called by the cron job)."""
     note_text = body.get("note", "")
     prompt_data = body.get("prompt_data", "")

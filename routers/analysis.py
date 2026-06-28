@@ -1,3 +1,4 @@
+from routers.auth import require_session
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -18,7 +19,7 @@ def build_zones(ftp):
     ]
 
 @router.get('/{activity_id}')
-def activity_analysis(activity_id: int, db: Session = Depends(get_db)):
+def activity_analysis(activity_id: int, db: Session = Depends(get_db),         _session = Depends(require_session)):
     activity = db.query(Activity).filter(Activity.id == activity_id).first()
     if not activity or not activity.streams:
         return {'zones': [], 'intervals': []}

@@ -38,7 +38,7 @@ def list_activities(
     q: str = None,
     date_from: str = None,
     date_to: str = None,
-):
+        _session = Depends(require_session)):
     """List activities with pagination, search, and filters."""
     query = db.query(Activity).order_by(desc(Activity.start_time))
     if sport:
@@ -62,7 +62,7 @@ def list_activities(
 
 
 @router.get("/{activity_id}")
-def get_activity(activity_id: int, db: Session = Depends(get_db), streams: bool = False):
+def get_activity(activity_id: int, db: Session = Depends(get_db), streams: bool = False,         _session = Depends(require_session)):
     """Get a single activity with optional streams."""
     activity = db.query(Activity).filter(Activity.id == activity_id).first()
     if not activity:
@@ -90,7 +90,7 @@ def update_activity_notes(activity_id: int, body: dict, db: Session = Depends(ge
     return {"success": True, "notes": activity.notes}
 
 @router.get("/export/{fmt}")
-def export_activities(fmt: str = "json", limit: int = 5000, offset: int = 0, db: Session = Depends(get_db)):
+def export_activities(fmt: str = "json", limit: int = 5000, offset: int = 0, db: Session = Depends(get_db),         _session = Depends(require_session)):
     """Export activities as CSV or JSON."""
     from fastapi.responses import PlainTextResponse
     import csv, io
@@ -125,7 +125,7 @@ async def upload_activity(
     sport: str = Form(None),
     db: Session = Depends(get_db),
     ftp: float = Form(None),
-):
+        _session = Depends(require_session)):
     """Upload a FIT, GPX, or TCX file and parse it."""
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file provided")
@@ -239,7 +239,7 @@ async def upload_activity(
 
 
 @router.delete("/{activity_id}")
-def delete_activity(activity_id: int, db: Session = Depends(get_db)):
+def delete_activity(activity_id: int, db: Session = Depends(get_db),         _session = Depends(require_session)):
     """Delete an activity."""
     activity = db.query(Activity).filter(Activity.id == activity_id).first()
     if not activity:
@@ -258,7 +258,7 @@ def delete_activity(activity_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/upload-multiple")
-async def upload_multiple(files: list[UploadFile] = File(...), db: Session = Depends(get_db)):
+async def upload_multiple(files: list[UploadFile] = File(...), db: Session = Depends(get_db),         _session = Depends(require_session)):
     """Upload multiple activity files at once."""
     results = []
     for file in files:

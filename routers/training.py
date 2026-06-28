@@ -1,3 +1,5 @@
+from routers.auth import require_session
+from routers.auth import require_session
 """Training load and power-duration endpoints."""
 import logging
 from fastapi import APIRouter, Depends, Query
@@ -17,13 +19,13 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("/pmc")
-def performance_management_chart(days: int = 90, db: Session = Depends(get_db)):
+def performance_management_chart(days: int = 90, db: Session = Depends(get_db),         _session = Depends(require_session)):
     """Get Performance Management Chart (CTL/ATL/TSB) data."""
     return get_pmc(db, days)
 
 
 @router.post("/recompute")
-def recompute_training_load(db: Session = Depends(get_db), ftp: float = None):
+def recompute_training_load(db: Session = Depends(get_db), ftp: float = None,         _session = Depends(require_session)):
     """Recompute all training load metrics."""
     import json, os
     # Persist FTP setting
@@ -37,21 +39,21 @@ def recompute_training_load(db: Session = Depends(get_db), ftp: float = None):
 
 
 @router.get("/power-curve")
-def power_curve(db: Session = Depends(get_db)):
+def power_curve(db: Session = Depends(get_db),         _session = Depends(require_session)):
     """Get the all-time best power-duration curve (cached)."""
     curve = compute_power_curve(db)
     return {"curve": curve}
 
 
 @router.get("/power-profile")
-def power_profile(db: Session = Depends(get_db), ftp: float = None):
+def power_profile(db: Session = Depends(get_db), ftp: float = None,         _session = Depends(require_session)):
     """Get power profile (5s, 1m, 5m, 20m, FTP) — cached."""
     profile = compute_power_profile(db, ftp)
     return {"profile": profile}
 
 
 @router.get("/ftp")
-def ftp_estimate(db: Session = Depends(get_db)):
+def ftp_estimate(db: Session = Depends(get_db),         _session = Depends(require_session)):
     """Estimate FTP from historical data or use persisted setting."""
     import json, os
     ftp_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "ftp_setting.json")
@@ -69,7 +71,7 @@ def ftp_estimate(db: Session = Depends(get_db)):
 
 
 @router.get("/activity-mmp/{activity_id}")
-def activity_mmp(activity_id: int, db: Session = Depends(get_db)):
+def activity_mmp(activity_id: int, db: Session = Depends(get_db),         _session = Depends(require_session)):
     """Get power-duration curve for a specific activity."""
     activity = db.query(Activity).filter(Activity.id == activity_id).first()
     if not activity or not activity.streams:
@@ -81,7 +83,7 @@ def activity_mmp(activity_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/xss/{activity_id}")
-def activity_xss(activity_id: int, db: Session = Depends(get_db), ftp: float = None):
+def activity_xss(activity_id: int, db: Session = Depends(get_db), ftp: float = None,         _session = Depends(require_session)):
     """Compute XSS equivalent for an activity."""
     activity = db.query(Activity).filter(Activity.id == activity_id).first()
     if not activity or not activity.streams:
@@ -98,7 +100,7 @@ def activity_xss(activity_id: int, db: Session = Depends(get_db), ftp: float = N
 
 
 @router.get("/summary")
-def training_summary(db: Session = Depends(get_db)):
+def training_summary(db: Session = Depends(get_db),         _session = Depends(require_session)):
     """Get a quick training summary."""
     # Latest PMC entry
     latest_pmc = db.query(DailyTrainingLoad).order_by(desc(DailyTrainingLoad.date)).first()
@@ -131,7 +133,7 @@ def training_summary(db: Session = Depends(get_db)):
 
 
 @router.get("/calendar")
-def training_calendar(days: int = 365, db: Session = Depends(get_db)):
+def training_calendar(days: int = 365, db: Session = Depends(get_db),         _session = Depends(require_session)):
     """Get daily TSS data for calendar heatmap."""
     from datetime import datetime, timedelta
     from sqlalchemy import func
@@ -158,14 +160,14 @@ def training_calendar(days: int = 365, db: Session = Depends(get_db)):
     } for r in rows]
 
 @router.get("/sports")
-def sport_list(db: Session = Depends(get_db)):
+def sport_list(db: Session = Depends(get_db),         _session = Depends(require_session)):
     """Get distinct sport types."""
     sports = db.query(Activity.sport).distinct().order_by(Activity.sport).all()
     return [s[0] for s in sports if s[0]]
 
 
 @router.get("/zones")
-def power_zones(days: int = 90, db: Session = Depends(get_db)):
+def power_zones(days: int = 90, db: Session = Depends(get_db),         _session = Depends(require_session)):
     """Get power training zones and time-in-zone for recent activities."""
     import json, math
     from datetime import datetime, timedelta
@@ -274,7 +276,7 @@ def power_zones(days: int = 90, db: Session = Depends(get_db)):
 
 
 @router.get("/insights")
-def training_insights(db: Session = Depends(get_db)):
+def training_insights(db: Session = Depends(get_db),         _session = Depends(require_session)):
     """Compute training insights -- trends, alerts, recommendations."""
     import json, math
     from datetime import datetime, timedelta
@@ -389,7 +391,7 @@ def training_insights(db: Session = Depends(get_db)):
 
 
 @router.get("/activity-insights/{activity_id}")
-def activity_insights(activity_id: int, db: Session = Depends(get_db)):
+def activity_insights(activity_id: int, db: Session = Depends(get_db),         _session = Depends(require_session)):
     """Compute insights for a single activity."""
     import json
     from datetime import datetime
