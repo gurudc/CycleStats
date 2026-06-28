@@ -43,6 +43,12 @@ async function doLogin() {
   }
 }
 
+// ── HTML Escape ──────────────────────────────────────────
+function esc(s) {
+  if (s === null || s === undefined) return "";
+  return String(s).replace(/&/g,"&amp;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
 // ── Helpers ────────────────────────────────────────────────
 var chartInstances = {};
 function destroyChart(id) { if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; } }
@@ -131,7 +137,7 @@ async function loadDashboard() {
       '<div class="stat-card"><div class="stat-value">' + (health.avg_resting_hr_7d || "--") + '</div><div class="stat-label">Avg Rest HR</div></div>' +
       '<div class="stat-card"><div class="stat-value">' + (health.latest.weight_kg || "--") + '</div><div class="stat-label">Avg Weight</div></div>' +
       '<div class="stat-card"><div class="stat-value">' + (health.latest.body_fat_pct || "--") + '</div><div class="stat-label">Body Fat %</div></div>';
-  } catch(e) { statsEl.innerHTML = '<div class="stat-card"><div class="stat-value" style="color:red">Error</div><div class="stat-label">' + e.message + '</div></div>'; }
+  } catch(e) { statsEl.innerHTML = '<div class="stat-card"><div class="stat-value" style="color:red">Error</div><div class="stat-label">' + esc(e.message) + '</div></div>'; }
   try {
     var ins = await apiGet("/training/insights");
     if (ins.insights && ins.insights.length > 0) { var card = document.getElementById("dash-insights-card"); if (card) card.style.display = "block"; renderInsights(ins.insights.slice(0, 3), "dash-insights"); }
@@ -175,7 +181,7 @@ async function loadActivities() {
       '<span>Page ' + (activitiesPage + 1) + " of " + tp + '</span>' +
       '<button onclick=\"activitiesPage++;loadActivities()" ' + (activitiesPage >= tp - 1 ? "disabled" : "") + '>Next &#9654;</button></div>';
     el.innerHTML = html;
-  } catch(e) { el.innerHTML = '<div class="status-msg error">' + e.message + "</div>"; }
+  } catch(e) { el.innerHTML = '<div class="status-msg error">' + esc(e.message) + "</div>"; }
 }
 async function deleteActivity(id) { if (!confirm("Delete activity #" + id + "?")) return; try { await apiPost("/activities/delete", { activity_id: id }); loadActivities(); } catch(e) { alert("Error: " + e.message); } }
 async function uploadActivity() {
@@ -191,7 +197,7 @@ async function uploadActivity() {
     var r = await fetch("/api/activities/upload", { method: "POST", body: fd });
     if (!r.ok) { var e = await r.json(); throw Error(e.detail || "Upload failed"); }
     se.innerHTML = '<div class="status-msg success">Imported!</div>'; fi.value = ""; loadActivities();
-  } catch(e) { se.innerHTML = '<div class="status-msg error">' + e.message + "</div>"; }
+  } catch(e) { se.innerHTML = '<div class="status-msg error">' + esc(e.message) + "</div>"; }
 }
 
 // ── Activity Detail ───────────────────────────────────────
@@ -259,7 +265,7 @@ async function openActivity(id) {
           if (hrRow) hrRow = '<div class="stat-grid" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;margin-bottom:10px">' + hrRow + '</div>';
         }
         var h = hrRow + st + '<div style="font-size:14px;line-height:1.6;color:var(--text-secondary);padding:4px 0 8px;border-bottom:1px solid var(--border-light)\">' + mt + "</div>";
-        if (tp) h += '<div style="display:flex;gap:10px;align-items:start;margin-top:10px;padding:10px 12px;background:var(--bg-nav-active);border-radius:6px"><span style="font-size:16px">&#10024;</span><div><div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:2px">Coach Tip</div><div style="font-size:13px;color:var(--text-secondary)\">' + tp + '</div></div></div>';
+        if (tp) h += '<div style="display:flex;gap:10px;align-items:start;margin-top:10px;padding:10px 12px;background:var(--bg-nav-active);border-radius:6px"><span style="font-size:16px">&#10024;</span><div><div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:2px">Coach Tip</div><div style="font-size:13px;color:var(--text-secondary)\">' + esc(tp) + '</div></div></div>';
         
                 // Notes & Tags card
         var nv = a.notes || "";
@@ -271,9 +277,9 @@ async function openActivity(id) {
         for (var ti = 0; ti < tags.length; ti++) {
           var tag = tags[ti];
           var active = nv.indexOf(tag) >= 0 ? " background:var(--accent);color:#fff" : " background:var(--bg-nav-active);color:var(--text-secondary)";
-          h += '<span class="tag-btn" data-tag="' + tag + '" style="display:inline-block;cursor:pointer;padding:3px 10px;border-radius:12px;font-size:12px;margin:3px;' + active + '" onclick="toggleTag(' + a.id + ',this)">' + tag + '</span>';
+          h += '<span class="tag-btn" data-tag="' + esc(tag) + '" style="display:inline-block;cursor:pointer;padding:3px 10px;border-radius:12px;font-size:12px;margin:3px;' + active + '" onclick="toggleTag(' + a.id + ',this)">' + esc(tag) + '</span>';
         }
-        h += '</div><textarea id="notes-text-' + a.id + '" style="width:100%;min-height:50px;padding:8px;border-radius:6px;border:1px solid var(--border-light);background:var(--bg-card);color:var(--text-primary);font-size:13px;resize:vertical">' + nv.replace(/</g,"&lt;") + '</textarea>';
+        h += '</div><textarea id="notes-text-' + a.id + '" style="width:100%;min-height:50px;padding:8px;border-radius:6px;border:1px solid var(--border-light);background:var(--bg-card);color:var(--text-primary);font-size:13px;resize:vertical">' + nv + '</textarea>';
         h += '<button class="btn" style="margin-top:6px;font-size:12px" onclick="saveNotes(' + a.id + ')">Save Notes</button></div>';
         // Load gear dropdown
         fetch("/api/gear/").then(function(r){return r.json()}).then(function(items){
@@ -281,7 +287,7 @@ async function openActivity(id) {
           if (!sel) return;
           items.forEach(function(g){
             var o = document.createElement("option");
-            o.value = g.id; o.textContent = g.name + " (" + g.current_mileage_km + "km)";
+            o.value = g.id; o.textContent = esc(g.name) + " (" + esc(g.current_mileage_km) + "km)";
             if (a.gear_id && a.gear_id == g.id) o.selected = true;
             sel.appendChild(o);
           });
@@ -301,7 +307,7 @@ async function openActivity(id) {
       renderStreamChart("chart-speed","Speed (km/h)", t, s.speed, "#339af0", false);
       renderStreamChart("chart-altitude","Altitude (m)", t, s.altitude, "#845ef7", false);
     }
-  } catch(e) { document.getElementById("detail-stats").innerHTML = '<div class="status-msg error">' + e.message + "</div>"; }
+  } catch(e) { document.getElementById("detail-stats").innerHTML = '<div class="status-msg error">' + esc(e.message) + "</div>"; }
 }
 
 function renderStreamChart(cid, label, td, vals, color, up, zones) {
@@ -351,7 +357,7 @@ async function loadHealth() {
         options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#8080a0" }, grid: { color: "#2a2a40" } }, y: { ticks: { color: "#8080a0" }, grid: { color: "#2a2a40" } } } }
       });
     });
-  } catch(e) { c.innerHTML = '<div class="status-msg error">' + e.message + "</div>"; }
+  } catch(e) { c.innerHTML = '<div class="status-msg error">' + esc(e.message) + "</div>"; }
 }
 
 // ── PMC ────────────────────────────────────────────────────
@@ -393,7 +399,7 @@ async function loadPowerCurve() {
       ]},
       options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { labels: { color: "#e0e0e0", font: {size:11} } } }, scales: { x: { ticks: { color: "#8080a0" }, grid: { color: "#2a2a40" } }, y: { ticks: { color: "#8080a0" }, grid: { color: "#2a2a40" }, beginAtZero: false } } }
     });
-  } catch(e) { c.innerHTML = '<div class="status-msg error">' + e.message + "</div>"; }
+  } catch(e) { c.innerHTML = '<div class="status-msg error">' + esc(e.message) + "</div>"; }
 }
 
 // ── Power Profile ──────────────────────────────────────────
@@ -411,7 +417,7 @@ async function loadPowerProfile() {
       data: { labels: lb, datasets: [{ label: "Power (W/kg)", data: vl, backgroundColor: ["#ff6b6b","#f39c12","#f1c40f","#51cf66","#339af0","#845ef7"], borderRadius: 4 }] },
       options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#8080a0" }, grid: { color: "#2a2a40" } }, y: { ticks: { color: "#8080a0" }, grid: { color: "#2a2a40" }, beginAtZero: true } } }
     });
-  } catch(e) { c.innerHTML = '<div class="status-msg error">' + e.message + "</div>"; }
+  } catch(e) { c.innerHTML = '<div class="status-msg error">' + esc(e.message) + "</div>"; }
 }
 
 // ── Calendar ───────────────────────────────────────────────
@@ -429,7 +435,7 @@ async function loadCalendar() {
     h+="</div><div style='display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;color:#8080a0'><span>Less</span>";
     [[0,"#1e1e30"],[0.25,"#0f3460"],[0.5,"#1a5276"],[0.75,"#2980b9"],[1,"#00d4ff"]].forEach(function(t){h+='<div style="width:14px;height:14px;border-radius:2px;background:'+t[1]+'"></div>';});
     h+="<span>More</span></div>"; c.innerHTML = h;
-  } catch(e) { var cl = document.getElementById("calendar-container"); if (cl) cl.innerHTML = '<div style="padding:40px;text-align:center;color:#ff8080">Error: '+e.message+"</div>"; }
+  } catch(e) { var cl = document.getElementById("calendar-container"); if (cl) cl.innerHTML = '<div style="padding:40px;text-align:center;color:#ff8080">Error: '+esc(e.message)+"</div>"; }
 }
 
 // ── Zones ──────────────────────────────────────────────────
@@ -447,7 +453,7 @@ async function loadZones() {
       '<span style="color:#e0e0e0;font-size:14px">'+(z.hours>0?z.hours+"h":z.seconds+"s")+' <span style="color:#8080a0;font-size:12px">('+z.pct_of_total+"%)</span></span></div>"+
       '<div style="height:20px;background:#1e1e30;border-radius:4px;overflow:hidden;margin-bottom:4px"><div style="height:100%;width:'+Math.max(z.pct_of_total,1)+'%;background:'+z.color+';border-radius:4px;transition:width 0.3s"></div></div>'+
       '<div style="color:#606080;font-size:12px">'+z.description+"</div></div>";}).join("");
-  } catch(e) { el.innerHTML = '<div class="status-msg error">'+e.message+"</div>"; }
+  } catch(e) { el.innerHTML = '<div class="status-msg error">'+esc(e.message)+"</div>"; }
 }
 
 // ── Insights ───────────────────────────────────────────────
@@ -469,29 +475,29 @@ async function loadInsights() {
   c.innerHTML = '<div class="loading-overlay"><div class="spinner"></div><span>Analyzing...</span></div>';
   var cc = document.getElementById("coach-card"); if(cc)cc.style.display="none";
   try { var ch = await apiGet("/coach/latest"); if(ch&&ch.note&&cc){cc.style.display="block";cc.innerHTML='<div class="card" style="border-left:4px solid var(--accent);margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><h2 style="margin:0">AI Coach</h2><span style="font-size:12px;color:var(--text-muted)\">'+(ch.date?new Date(ch.date).toLocaleDateString():"")+'</span></div><div style="font-size:15px;line-height:1.5;color:var(--text-primary);padding:4px 0">'+ch.note+'</div><div style="margin-top:8px"><a href="#" onclick=\"toggleCoachHistory()" style="color:var(--accent);font-size:12px">View history</a></div><div id="coach-history" style="display:none;margin-top:12px;border-top:1px solid var(--border-light);padding-top:12px"></div></div>';} } catch(e) {}
-  try { var d = await apiGet("/training/insights"); renderInsights(d.insights, "insights-container"); setTimeout(loadPMC,100); } catch(e) { c.innerHTML = '<div class="status-msg error">'+e.message+"</div>"; }
+  try { var d = await apiGet("/training/insights"); renderInsights(d.insights, "insights-container"); setTimeout(loadPMC,100); } catch(e) { c.innerHTML = '<div class="status-msg error">'+esc(e.message)+"</div>"; }
 }
 
 // ── Segments ───────────────────────────────────────────────
-async function loadSegments() { var c = document.getElementById("segments-container"); if(!c)return; c.innerHTML="<p>Loading...</p>"; try{var d=await apiGet("/segments/");renderSegments(c,d);}catch(e){c.innerHTML="<p>Error: "+e.message+"</p>";} }
+async function loadSegments() { var c = document.getElementById("segments-container"); if(!c)return; c.innerHTML="<p>Loading...</p>"; try{var d=await apiGet("/segments/");renderSegments(c,d);}catch(e){c.innerHTML="<p>Error: "+esc(e.message)+"</p>";} }
 function renderSegments(r,s){if(!s||s.length===0){r.innerHTML='<p>No segments</p><button class="btn btn-primary" onclick=\"autoDetectSegments()\">Auto-Detect</button>';return;}r.innerHTML='<button class="btn btn-primary" onclick=\"autoDetectSegments()\">Auto-Detect</button><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;margin-top:16px">'+s.map(function(s){return'<div class="card" style="cursor:pointer" onclick=\"showSegmentLeaderboard('+s.id+')\"><h3>'+s.name+'</h3><p style="color:#8a9aa8;font-size:14px">'+(s.distance_m/1000).toFixed(1)+" km"+(s.occurrences?" &middot; "+s.occurrences+" rides":"")+"</p></div>";}).join("")+"</div>";}
-async function autoDetectSegments(){if(!confirm("Auto-detect segments?"))return;document.getElementById("segments-container").innerHTML="Detecting...";try{await apiPost("/segments/auto-detect?min_occurrences=2");loadSegments();}catch(e){document.getElementById("segments-container").innerHTML="<p>Error: "+e.message+"</p>";}}
-async function showSegmentLeaderboard(sid){var c=document.getElementById("segments-container");c.innerHTML="<p>Loading leaderboard...</p>";try{var d=await apiGet("/segments/"+sid+"/leaderboard");if(!d||d.length===0){c.innerHTML='<p>No data</p><button class="btn" onclick=\"loadSegments()\">Back</button>';return;}var h='<button class="btn" onclick=\"loadSegments()\">&#9664; Back</button><h2>'+(d[0].segment_name||"Segment")+'</h2><table style="width:100%;border-collapse:collapse"><tr style="color:#8080a0;border-bottom:1px solid #2a2a40"><th style="padding:8px;text-align:left">#</th><th style="padding:8px;text-align:left">Rider</th><th style="padding:8px;text-align:left">Time</th></tr>';d.forEach(function(r){h+='<tr style="border-bottom:1px solid #1e1e30"><td style="padding:8px">'+(r.rank||"-")+'</td><td style="padding:8px">'+r.athlete_name+'</td><td style="padding:8px">'+(r.time?formatTime(r.time):"-")+"</td></tr>";});h+="</table>";c.innerHTML=h;}catch(e){c.innerHTML="<p>Error: "+e.message+"</p>";}}
+async function autoDetectSegments(){if(!confirm("Auto-detect segments?"))return;document.getElementById("segments-container").innerHTML="Detecting...";try{await apiPost("/segments/auto-detect?min_occurrences=2");loadSegments();}catch(e){document.getElementById("segments-container").innerHTML="<p>Error: "+esc(e.message)+"</p>";}}
+async function showSegmentLeaderboard(sid){var c=document.getElementById("segments-container");c.innerHTML="<p>Loading leaderboard...</p>";try{var d=await apiGet("/segments/"+sid+"/leaderboard");if(!d||d.length===0){c.innerHTML='<p>No data</p><button class="btn" onclick=\"loadSegments()\">Back</button>';return;}var h='<button class="btn" onclick=\"loadSegments()\">&#9664; Back</button><h2>'+esc(d[0].segment_name||"Segment")+'</h2><table style="width:100%;border-collapse:collapse"><tr style="color:#8080a0;border-bottom:1px solid #2a2a40"><th style="padding:8px;text-align:left">#</th><th style="padding:8px;text-align:left">Rider</th><th style="padding:8px;text-align:left">Time</th></tr>';d.forEach(function(r){h+='<tr style="border-bottom:1px solid #1e1e30"><td style="padding:8px">'+esc(r.rank||"-")+'</td><td style="padding:8px">'+esc(r.athlete_name)+'</td><td style="padding:8px">'+esc(r.time?formatTime(r.time):"-")+"</td></tr>";});h+="</table>";c.innerHTML=h;}catch(e){c.innerHTML="<p>Error: "+esc(e.message)+"</p>";}}
 async function loadStravaSegments(){try{var s=await apiGet("/strava/segments");alert("Loaded "+s.length+" segments");renderStravaSegments(s);}catch(e){alert("Error: "+e.message);}}
 function renderStravaSegments(s){var c=document.getElementById("strava-segments-container");if(!c||!s)return;c.innerHTML="<h3>Strava Segments ("+s.length+")</h3><div style='display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:12px'>"+s.map(function(s){return'<div class="card" style="cursor:pointer;padding:14px"><h3>'+s.name+'</h3><p style="color:#8a9aa8;font-size:13px">'+(s.distance||0).toFixed(0)+"m, "+(s.average_grade||0).toFixed(1)+"%</p></div>";}).join("")+"</div>";}
 
 // ── Settings ───────────────────────────────────────────────
 async function loadSettings(){loadStravaStatus();loadGarminStatus();try{var f=await apiGet("/training/ftp");var fe=document.getElementById("ftp-value");if(fe)fe.value=f.ftp||"";var fd=document.getElementById("ftp-current");if(fd)fd.textContent=(f.ftp||"--")+"W";}catch(e){}}
 async function loadStravaStatus(){try{var s=await apiGet("/strava/status");if(s.connected){try{var a=await apiGet("/strava/me");document.getElementById("strava-status").innerHTML='<div class="status-msg success">Connected: '+(a.firstname||"")+" "+(a.lastname||"")+"</div>";}catch(e){document.getElementById("strava-status").innerHTML='<div class="status-msg success">Connected</div>';}}else{document.getElementById("strava-status").innerHTML='<div class="status-msg info">Not connected</div>';}}catch(e){document.getElementById("strava-status").innerHTML='<div class="status-msg info">Not connected</div>';}}
-async function stravaConnect(){document.getElementById("strava-status").innerHTML='<div class="status-msg info">Opening Strava...</div>';try{var d=await apiGet("/strava/auth-url");if(d.auth_url){window.open(d.auth_url,"_blank");document.getElementById("strava-status").innerHTML='<div class="status-msg info">Strava opened in new tab. Complete authorization, then refresh.</div>';}else{document.getElementById("strava-status").innerHTML='<div class="status-msg error">No auth URL</div>';}}catch(e){document.getElementById("strava-status").innerHTML='<div class="status-msg error">Error: '+e.message+"</div>";}}
-async function stravaConnectToken(){var t=document.getElementById("strava-token").value;if(!t){alert("Enter a token");return;}try{await apiPost("/strava/connect?token="+encodeURIComponent(t));loadStravaStatus();document.getElementById("strava-token").value="";}catch(e){document.getElementById("strava-status").innerHTML='<span style="color:red">Error: '+e.message+"</span>";}}
+async function stravaConnect(){document.getElementById("strava-status").innerHTML='<div class="status-msg info">Opening Strava...</div>';try{var d=await apiGet("/strava/auth-url");if(d.auth_url){window.open(d.auth_url,"_blank");document.getElementById("strava-status").innerHTML='<div class="status-msg info">Strava opened in new tab. Complete authorization, then refresh.</div>';}else{document.getElementById("strava-status").innerHTML='<div class="status-msg error">No auth URL</div>';}}catch(e){document.getElementById("strava-status").innerHTML='<div class="status-msg error">Error: '+esc(e.message)+"</div>";}}
+async function stravaConnectToken(){var t=document.getElementById("strava-token").value;if(!t){alert("Enter a token");return;}try{await apiPost("/strava/connect?token="+encodeURIComponent(t));loadStravaStatus();document.getElementById("strava-token").value="";}catch(e){document.getElementById("strava-status").innerHTML='<span style="color:red">Error: '+esc(e.message)+"</span>";}}
 async function stravaSync(){try{var s=await apiGet("/strava/segments");alert("Synced "+s.length+" segments");}catch(e){alert("Error: "+e.message);}}
-async function stravaImportActivities(){var se=document.getElementById("strava-status");var bt=document.querySelectorAll("#page-settings .card:first-of-type .btn");se.innerHTML='<div class="status-msg info"><div class="spinner" style="display:inline-block;vertical-align:middle;margin-right:8px"></div> Importing...</div>';bt.forEach(function(b){b.disabled=true;});try{var r=await apiPost("/strava/import-activities?limit=50");se.innerHTML='<div class="status-msg success">Imported '+r.imported+" new. "+r.skipped+" existed.</div>";loadActivities();}catch(e){se.innerHTML='<div class="status-msg error">Import failed: '+e.message+"</div>";}bt.forEach(function(b){b.disabled=false;});}
+async function stravaImportActivities(){var se=document.getElementById("strava-status");var bt=document.querySelectorAll("#page-settings .card:first-of-type .btn");se.innerHTML='<div class="status-msg info"><div class="spinner" style="display:inline-block;vertical-align:middle;margin-right:8px"></div> Importing...</div>';bt.forEach(function(b){b.disabled=true;});try{var r=await apiPost("/strava/import-activities?limit=50");se.innerHTML='<div class="status-msg success">Imported '+r.imported+" new. "+r.skipped+" existed.</div>";loadActivities();}catch(e){se.innerHTML='<div class="status-msg error">Import failed: '+esc(e.message)+"</div>";}bt.forEach(function(b){b.disabled=false;});}
 async function stravaDisconnect(){try{await apiPost("/strava/disconnect");loadStravaStatus();}catch(e){alert("Error: "+e.message);}}
 async function loadGarminStatus(){try{var s=await apiGet("/garmin/status");document.getElementById("garmin-status").innerHTML=s.configured?'<div class="status-msg success">Configured</div>':'<div class="status-msg info">Not configured</div>';}catch(e){document.getElementById("garmin-status").innerHTML='<div class="status-msg info">Not configured</div>';}}
 async function garminConfigure(){var e=document.getElementById("garmin-email").value;var p=document.getElementById("garmin-password").value;if(!e||!p){alert("Enter email and password");return;}try{await apiPost("/garmin/save-credentials?email="+encodeURIComponent(e)+"&password="+encodeURIComponent(p));loadGarminStatus();alert("Saved");}catch(e2){alert("Error: "+e2.message);}}
-async function garminSync(){document.getElementById("garmin-status").innerHTML='<div class="status-msg info"><div class="spinner" style="display:inline-block;vertical-align:middle;margin-right:8px"></div> Syncing...</div>';try{await apiPost("/garmin/sync");document.getElementById("garmin-status").innerHTML='<div class="status-msg success">Sync complete</div>';}catch(e){document.getElementById("garmin-status").innerHTML='<div class="status-msg error">Error: '+e.message+"</div>";}}
-async function garminSyncHealth(){document.getElementById("garmin-status").innerHTML='<div class="status-msg info"><div class="spinner" style="display:inline-block;vertical-align:middle;margin-right:8px"></div> Syncing health...</div>';try{await apiPost("/garmin/sync?health_only=true");document.getElementById("garmin-status").innerHTML='<div class="status-msg success">Health sync complete</div>';}catch(e){document.getElementById("garmin-status").innerHTML='<div class="status-msg error">Error: '+e.message+"</div>";}}
+async function garminSync(){document.getElementById("garmin-status").innerHTML='<div class="status-msg info"><div class="spinner" style="display:inline-block;vertical-align:middle;margin-right:8px"></div> Syncing...</div>';try{await apiPost("/garmin/sync");document.getElementById("garmin-status").innerHTML='<div class="status-msg success">Sync complete</div>';}catch(e){document.getElementById("garmin-status").innerHTML='<div class="status-msg error">Error: '+esc(e.message)+"</div>";}}
+async function garminSyncHealth(){document.getElementById("garmin-status").innerHTML='<div class="status-msg info"><div class="spinner" style="display:inline-block;vertical-align:middle;margin-right:8px"></div> Syncing health...</div>';try{await apiPost("/garmin/sync?health_only=true");document.getElementById("garmin-status").innerHTML='<div class="status-msg success">Health sync complete</div>';}catch(e){document.getElementById("garmin-status").innerHTML='<div class="status-msg error">Error: '+esc(e.message)+"</div>";}}
 // Notes & tag functions
 async function saveNotes(id) {
   var ta = document.getElementById("notes-text-" + id);
@@ -538,7 +544,7 @@ async function loadGear() {
       var warn = pct > 90 ? '<div style="color:#e74c3c;font-size:11px;margin-top:4px">&#9888; Replace soon!</div>' : '';
       var remaining = g.remaining_km !== null && g.remaining_km !== undefined ? '<div style="font-size:11px;color:var(--text-muted)">' + g.remaining_km + ' km remaining</div>' : '';
       h += '<div class="stat-card" style="position:relative;text-align:left;min-width:200px">' +
-        '<div style="font-size:14px;font-weight:600;color:var(--accent)">' + g.name + '</div>' +
+        '<div style="font-size:14px;font-weight:600;color:var(--accent)">' + esc(g.name) + '</div>' +
         '<div style="font-size:11px;color:var(--text-muted);margin:2px 0 6px">' + g.type + (g.brand ? " - " + g.brand : "") + '</div>' +
         '<div style="font-size:20px;font-weight:700;color:' + barColor + '">' + g.current_mileage_km + ' km</div>' +
         '<div style="height:4px;background:var(--bg-nav-active);border-radius:2px;margin:6px 0;overflow:hidden">' +
@@ -548,7 +554,7 @@ async function loadGear() {
     });
     h += '</div>';
     c.innerHTML = h;
-  } catch(e) { c.innerHTML = '<div class="status-msg error">Error: ' + e.message + '</div>'; }
+  } catch(e) { c.innerHTML = '<div class="status-msg error">Error: ' + esc(e.message) + '</div>'; }
 }
 
 async function addGear() {
