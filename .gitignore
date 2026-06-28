@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Database
 *.db
 *.sqlite
@@ -28,3 +29,15 @@ Thumbs.db
 # Test files
 test_*.py
 test_*.sh
+=======
+# CycleStats .gitignore
+__pycache__/
+*.pyc
+*.pyo
+.env
+data/
+scripts/
+*.db
+*.sqlite3
+.DS_Store
+>>>>>>> d31f8cd76d9ad2bfed41dbfc55048e5411b3334f
