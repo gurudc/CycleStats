@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CycleStats</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script type="module" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.esm.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #111; color: #e0e0e0; display: flex; min-height: 100vh; }
+.sidebar { width: 220px; background: #1a1a2e; padding: 20px 0; flex-shrink: 0; }
+.sidebar h2 { color: #00d4ff; padding: 0 20px 20px; font-size: 22px; border-bottom: 1px solid #2a2a3e; }
+.sidebar .nav-item { display: block; padding: 12px 20px; color: #b0b0c0; text-decoration: none; cursor: pointer; transition: all 0.2s; }
+.sidebar .nav-item:hover { background: #16213e; color: #00d4ff; }
+.sidebar .nav-item.active { background: #0f3460; color: #00d4ff; border-left: 3px solid #00d4ff; }
+.main { flex: 1; padding: 24px; overflow-y: auto; max-height: 100vh; }
+.page { display: none; }
+.page.active { display: block; }
+h1 { color: #00d4ff; margin-bottom: 20px; font-size: 28px; }
+h2 { color: #00d4ff; margin-bottom: 14px; font-size: 20px; }
+h3 { color: #a0c4ff; margin-bottom: 10px; font-size: 16px; }
+.card { background: #1e1e30; border-radius: 10px; padding: 20px; margin-bottom: 20px; border: 1px solid #2a2a40; }
+.card label { display: block; color: #a0a0c0; margin-bottom: 6px; font-size: 13px; }
+.card input[type="text"], .card input[type="password"], .card input[type="number"] { width: 100%; padding: 10px 12px; background: #2a2a40; border: 1px solid #3a3a50; color: #e0e0e0; border-radius: 6px; font-size: 14px; margin-bottom: 12px; }
+.card input:focus { outline: none; border-color: #00d4ff; }
+.btn { display: inline-block; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; margin-right: 8px; margin-bottom: 8px; }
+.btn-primary { background: #00d4ff; color: #111; }
+.btn-primary:hover { background: #00b8e0; }
+.btn-danger { background: #e74c3c; color: #fff; }
+.btn-danger:hover { background: #c0392b; }
+.btn-warning { background: #f39c12; color: #111; }
+.btn-warning:hover { background: #e67e22; }
+.btn-success { background: #27ae60; color: #fff; }
+.btn-success:hover { background: #219a52; }
+.btn-secondary { background: #3a3a50; color: #e0e0e0; }
+.btn-secondary:hover { background: #4a4a60; }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.stat-card { background: #16213e; border-radius: 8px; padding: 16px; text-align: center; border: 1px solid #2a2a40; }
+.stat-card .stat-value { font-size: 24px; font-weight: 700; color: #00d4ff; margin: 4px 0; }
+.stat-card .stat-label { font-size: 12px; color: #8080a0; text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-card .stat-sub { font-size: 11px; color: #606080; margin-top: 2px; }
+.chart-container { position: relative; width: 100%; height: 300px; margin-bottom: 20px; }
+.stream-chart-wrapper { width: 100%; margin-bottom: 16px; background: #1e1e30; border-radius: 10px; padding: 16px; border: 1px solid #2a2a40; box-sizing: border-box; }
+.stream-chart-container { position: relative; width: 100%; height: 500px; margin-bottom: 20px; }
+.status-msg { padding: 10px 14px; border-radius: 6px; margin: 10px 0; font-size: 14px; }
+.status-msg.info { background: #1a3a5c; color: #80d0ff; border: 1px solid #2a5a8c; }
+.status-msg.success { background: #1a3a2c; color: #80ffa0; border: 1px solid #2a5a3c; }
+.status-msg.error { background: #3a1a1a; color: #ff8080; border: 1px solid #5a2a2a; }
+.activities-list { list-style: none; }
+.activities-list li { padding: 14px 16px; border-bottom: 1px solid #2a2a40; cursor: pointer; transition: background 0.15s; display: flex; justify-content: space-between; align-items: center; }
+.activities-list li:hover { background: #16213e; }
+.activities-list li:last-child { border-bottom: none; }
+.activities-list .act-name { font-weight: 600; color: #e0e0e0; }
+.activities-list .act-meta { font-size: 12px; color: #8080a0; }
+.activities-list .act-stats { display: flex; gap: 16px; font-size: 13px; color: #a0a0c0; }
+.delete-btn { background: none; border: 1px solid #5a2a2a; color: #ff8080; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+.delete-btn:hover { background: #5a2a2a; }
+.back-btn { margin-bottom: 16px; }
+#gps-map { height: 400px; border-radius: 8px; margin-bottom: 20px; }
+.ftp-display { font-size: 48px; font-weight: 700; color: #00d4ff; text-align: center; padding: 20px; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-left: 8px; }
+.badge-cycling { background: #1a5a3a; color: #80ffa0; }
+.badge-running { background: #5a3a1a; color: #ffa080; }
+.badge-other { background: #3a3a5a; color: #a0a0ff; }
+.pagination { display: flex; justify-content: center; gap: 8px; margin: 16px 0; align-items: center; }
+.pagination button { background: #2a2a40; color: #e0e0e0; border: 1px solid #3a3a50; padding: 6px 14px; border-radius: 4px; cursor: pointer; }
+.pagination button:hover { background: #3a3a50; }
+.pagination button:disabled { opacity: 0.4; cursor: default; }
+.pagination span { color: #8080a0; font-size: 14px; }
+@media (max-width: 768px) {
+  .sidebar { width: 60px; }
+  .sidebar h2 { font-size: 14px; padding: 10px; text-align: center; }
+  .sidebar .nav-item { padding: 10px; font-size: 11px; text-align: center; }
+  .main { padding: 12px; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <h2>CycleStats</h2>
+  <a class="nav-item active" data-page="dashboard" href="#">Dashboard</a>
+  <a class="nav-item" data-page="activities" href="#">Activities</a>
+  <a class="nav-item" data-page="activity-detail" href="#" id="nav-activity-detail" style="display:none">Activity Detail</a>
+  <a class="nav-item" data-page="health" href="#">Health</a>
+  <a class="nav-item" data-page="pmc" href="#">PMC</a>
+  <a class="nav-item" data-page="power-curve" href="#">Power Curve</a>
+  <a class="nav-item" data-page="power-profile" href="#">Power Profile</a>
+  <a class="nav-item" data-page="settings" href="#">Settings</a>
+</div>
+
+<div class="main">
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <h1>Dashboard</h1>
+  <div class="stat-grid" id="dash-stats"></div>
+  <div class="card">
+    <h2>Recent Activities</h2>
+    <ul class="activities-list" id="dash-activities"></ul>
+  </div>
+</div>
+
+<!-- ACTIVITIES -->
+<div class="page" id="page-activities">
+  <h1>Activities</h1>
+  <div id="activities-controls">
+    <button class="btn btn-primary" onclick="loadActivities()">Refresh</button>
+    <span id="activities-total" style="color:#8080a0;margin-left:12px;"></span>
+  </div>
+  <div class="card">
+    <ul class="activities-list" id="activities-list"></ul>
+  </div>
+  <div class="pagination" id="activities-pagination"></div>
+</div>
+
+<!-- ACTIVITY DETAIL -->
+<div class="page" id="page-activity-detail">
+  <button class="btn btn-secondary back-btn" onclick="showPage('activities')">Back to Activities</button>
+  <h1 id="detail-title">Activity Detail</h1>
+  <div class="stat-grid" id="detail-stats"></div>
+  <div class="card">
+    <div id="gps-map"></div>
+  </div>
+  <div class="stream-chart-wrapper">
+    <h2 style="margin:0 0 4px 0;font-size:14px;color:#808098;">Power (W)</h2>
+    <div class="stream-chart-container" style="width:100%;height:500px;"><canvas id="chart-power"></canvas></div>
+  </div>
+  <div class="stream-chart-wrapper">
+    <h2 style="margin:0 0 4px 0;font-size:14px;color:#808098;">Heart Rate (bpm)</h2>
+    <div class="stream-chart-container" style="width:100%;height:500px;"><canvas id="chart-hr"></canvas></div>
+  </div>
+  <div class="stream-chart-wrapper">
+    <h2 style="margin:0 0 4px 0;font-size:14px;color:#808098;">Cadence (rpm)</h2>
+    <div class="stream-chart-container" style="width:100%;height:500px;"><canvas id="chart-cadence"></canvas></div>
+  </div>
+  <div class="stream-chart-wrapper">
+    <h2 style="margin:0 0 4px 0;font-size:14px;color:#808098;">Speed (km/h)</h2>
+    <div class="stream-chart-container" style="width:100%;height:500px;"><canvas id="chart-speed"></canvas></div>
+  </div>
+
+  <div class="stream-chart-wrapper">
+    <h2 style="margin:0 0 4px 0;font-size:14px;color:#808098;">Altitude (m)</h2>
+    <div class="stream-chart-container" style="width:100%;height:500px;"><canvas id="chart-altitude"></canvas></div>
+  </div></div>
+
+<!-- HEALTH -->
+<div class="page" id="page-health">
+  <h1>Health</h1>
+  <div class="card">
+    <h2>Health Snapshot</h2>
+    <div class="stat-grid" id="health-summary"></div>
+  </div>
+  <div class="card">
+    <h2>Resting Heart Rate</h2>
+    <div class="chart-container"><canvas id="chart-hr-resting"></canvas></div>
+  </div>
+  <div class="card">
+    <h2>HRV (RMSSD)</h2>
+    <div class="chart-container"><canvas id="chart-hrv"></canvas></div>
+  </div>
+  <div class="card">
+    <h2>Sleep Hours</h2>
+    <div class="chart-container"><canvas id="chart-sleep"></canvas></div>
+  </div>
+  <div class="card">
+    <h2>Body Composition</h2>
+    <div class="chart-container" style="height:200px;"><canvas id="chart-weight"></canvas></div>
+    <div class="chart-container" style="height:200px;margin-top:8px;"><canvas id="chart-bf"></canvas></div>
+  </div>
+</div>
+
+<!-- PMC -->
+<div class="page" id="page-pmc">
+  <h1>Performance Management Chart (PMC)</h1>
+  <div class="stat-grid" id="pmc-stats"></div>
+  <div class="card">
+    <div class="chart-container" style="height:600px;"><canvas id="chart-pmc"></canvas></div>
+  </div>
+</div>
+
+<!-- POWER CURVE -->
+<div class="page" id="page-power-curve">
+  <h1>Power Curve</h1>
+  <div class="card">
+    <div class="chart-container" style="height:400px"><canvas id="chart-power-curve"></canvas></div>
+  </div>
+</div>
+
+<!-- POWER PROFILE -->
+<div class="page" id="page-power-profile">
+  <h1>Power Profile</h1>
+  <div class="card">
+    <div class="chart-container" style="height:400px"><canvas id="chart-power-profile"></canvas></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="page" id="page-settings">
+  <h1>Settings</h1>
+
+  <div class="card">
+    <h2>FTP Settings</h2>
+    <label>Current FTP (watts)</label>
+    <div class="ftp-display" id="ftp-current">--</div>
+    <label>Set New FTP</label>
+    <input type="number" id="ftp-input" placeholder="Enter FTP value" />
+    <button class="btn btn-primary" onclick="updateFTP()">Update FTP</button>
+    <button class="btn btn-warning" onclick="recomputeTSS()">Recompute TSS</button>
+    <div id="ftp-status"></div>
+  </div>
+
+  <div class="card">
+    <h2>Wahoo Integration</h2>
+    <div id="wahoo-status"></div>
+    <button class="btn btn-primary" onclick="wahooConnect()">Connect Wahoo</button>
+    <button class="btn btn-success" onclick="wahooSync()">Sync Wahoo</button>
+  </div>
+
+  <div class="card">
+    <h2>Garmin Integration</h2>
+    <div id="garmin-status"></div>
+    <label>Garmin Email</label>
+    <input type="text" id="garmin-email" placeholder="your@garmin.com" />
+    <label>Garmin Password</label>
+    <input type="password" id="garmin-password" placeholder="Garmin password" />
+    <button class="btn btn-primary" onclick="garminConfigure()">Save & Configure</button>
+    <button class="btn btn-success" onclick="garminSync()">Sync All</button>
+    <button class="btn btn-success" onclick="garminSyncHealth()">Sync Health Only</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ---- API helper ----
+var API_BASE = '/api';
+
+function apiGet(path) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', API_BASE + path, false);
+  xhr.setRequestHeader('Accept', 'application/json');
+  xhr.send();
+  if (xhr.status >= 200 && xhr.status < 300) {
+    return JSON.parse(xhr.responseText);
+  }
+  var err = new Error('API GET ' + path + ' failed: ' + xhr.status);
+  err.status = xhr.status;
+  err.response = xhr.responseText;
+  throw err;
+}
+
+function apiPost(path, body) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', API_BASE + path, false);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('Accept', 'application/json');
+  xhr.send(body ? JSON.stringify(body) : null);
+  if (xhr.status >= 200 && xhr.status < 300) {
+    return JSON.parse(xhr.responseText);
+  }
+  var err = new Error('API POST ' + path + ' failed: ' + xhr.status);
+  err.status = xhr.status;
+  err.response = xhr.responseText;
+  throw err;
+}
+
+function apiDelete(path) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('DELETE', API_BASE + path, false);
+  xhr.setRequestHeader('Accept', 'application/json');
+  xhr.send();
+  if (xhr.status >= 200 && xhr.status < 300) {
+    return xhr.responseText ? JSON.parse(xhr.responseText) : null;
+  }
+  var err = new Error('API DELETE ' + path + ' failed: ' + xhr.status);
+  err.status = xhr.status;
+  err.response = xhr.responseText;
+  throw err;
+}
+
+// ---- Page navigation ----
+function showPage(pageName) {
+  var pages = document.querySelectorAll('.page');
+  for (var i = 0; i < pages.length; i++) {
+    pages[i].classList.remove('active');
+  }
+  var target = document.getElementById('page-' + pageName);
+  if (target) {
+    target.classList.add('active');
+  }
+  var navs = document.querySelectorAll('.nav-item');
+  for (var i = 0; i < navs.length; i++) {
+    navs[i].classList.remove('active');
+    if (navs[i].getAttribute('data-page') === pageName) {
+      navs[i].classList.add('active');
+    }
+  }
+  var detailNav = document.getElementById('nav-activity-detail');
+  if (pageName === 'activity-detail') {
+    detailNav.style.display = 'block';
+    detailNav.classList.add('active');
+  } else {
+    detailNav.style.display = 'none';
+  }
+  if (pageName === 'dashboard') { loadDashboard(); }
+  else if (pageName === 'activities') { loadActivities(); }
+  else if (pageName === 'health') { loadHealth(); }
+  else if (pageName === 'pmc') { loadPMC(); }
+  else if (pageName === 'power-curve') { loadPowerCurve(); }
+  else if (pageName === 'power-profile') { loadPowerProfile(); }
+  else if (pageName === 'settings') { loadSettings(); }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var navItems = document.querySelectorAll('.nav-item[data-page]');
+  for (var i = 0; i < navItems.length; i++) {
+    navItems[i].addEventListener('click', function(e) {
+      e.preventDefault();
+      showPage(this.getAttribute('data-page'));
+    });
+  }
+  loadDashboard();
+});
+
+// ---- Utility ----
+function formatDate(isoStr) {
+  var d = new Date(isoStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatTime(seconds) {
+  var h = Math.floor(seconds / 3600);
+  var m = Math.floor((seconds % 3600) / 60);
+  var s = Math.floor(seconds % 60);
+  if (h > 0) {
+    return h + 'h ' + m + 'm ' + s + 's';
+  }
+  return m + 'm ' + s + 's';
+}
+
+function sportBadge(sport) {
+  if (!sport) return '<span class="badge badge-other">other</span>';
+  var s = sport.toLowerCase();
+  if (s.indexOf('cycl') !== -1 || s.indexOf('bike') !== -1 || s.indexOf('ride') !== -1) {
+    return '<span class="badge badge-cycling">cycling</span>';
+  }
+  if (s.indexOf('run') !== -1) {
+    return '<span class="badge badge-running">running</span>';
+  }
+  return '<span class="badge badge-other">' + sport + '</span>';
+}
+
+function destroyChart(id) {
+  var existing = Chart.getChart(id);
+  if (existing) { existing.destroy(); }
+}
+
+// ---- DASHBOARD ----
+function loadDashboard() {
+  var statsEl = document.getElementById('dash-stats');
+  var actEl = document.getElementById('dash-activities');
+
+
+  try {
+    var acts = apiGet('/activities/?limit=5');
+
+    var ftpData = apiGet('/training/ftp');
+    var pmcData = apiGet('/training/pmc');
+  } catch (e) {
+    statsEl.innerHTML = '<div class="stat-card"><div class="stat-value" style="color:red">Error</div><div class="stat-label">' + e.message + '</div></div>';
+    return;
+  }
+
+  var ftp = ftpData.ftp || 0;
+  var totalActs = acts.total || 0;
+  var latestPMC = pmcData.length > 0 ? pmcData[pmcData.length - 1] : null;
+  var tsb = latestPMC ? latestPMC.tsb : 0;
+  var ctl = latestPMC ? latestPMC.ctl : 0;
+  var atl = latestPMC ? latestPMC.atl : 0;
+
+  var tsbClass = 'color:#00d4ff';
+  if (tsb < -10) tsbClass = 'color:#ff8080';
+  else if (tsb < 0) tsbClass = 'color:#f0c040';
+  else if (tsb > 15) tsbClass = 'color:#80ffa0';
+
+  statsEl.innerHTML =
+    '<div class="stat-card"><div class="stat-value">' + ftp + '</div><div class="stat-label">FTP (W)</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + totalActs + '</div><div class="stat-label">Total Activities</div></div>' +
+    '<div class="stat-card"><div class="stat-value" style="' + tsbClass + '">' + tsb.toFixed(1) + '</div><div class="stat-label">TSB</div><div class="stat-sub">CTL ' + ctl.toFixed(1) + ' / ATL ' + atl.toFixed(1) + '</div></div>';
+
+  var html = '';
+  var activityList = acts.activities || [];
+  for (var i = 0; i < activityList.length; i++) {
+    var a = activityList[i];
+    html += '<li onclick="openActivity(' + a.id + ')">' +
+      '<div><div class="act-name">' + a.name + ' ' + sportBadge(a.sport) + '</div>' +
+      '<div class="act-meta">' + formatDate(a.start_time) + ' &middot; ' + (a.distance_km || 0).toFixed(1) + ' km</div></div>' +
+      '<div class="act-stats">' +
+        (a.avg_power_w ? '<span>' + a.avg_power_w + 'W</span>' : '') +
+        (a.avg_heartrate ? '<span>' + a.avg_heartrate + ' bpm</span>' : '') +
+        (a.elevation_gain_m ? '<span>' + a.elevation_gain_m + 'm</span>' : '') +
+      '</div></li>';
+  }
+  if (activityList.length === 0) {
+    html = '<li style="color:#606080;text-align:center;padding:20px;">No activities yet</li>';
+  }
+  actEl.innerHTML = html;
+
+  var checkins = Array.isArray(healthData) ? healthData : [];
+  var latest = checkins.length > 0 ? checkins[checkins.length - 1] : null;
+  if (latest) {
+    healthEl.innerHTML =
+      '<div class="stat-card"><div class="stat-value">' + (latest.resting_hr || '--') + '</div><div class="stat-label">Resting HR</div></div>' +
+      '<div class="stat-card"><div class="stat-value">' + (latest.hrv_rmssd || '--') + '</div><div class="stat-label">HRV</div></div>' +
+      '<div class="stat-card"><div class="stat-value">' + (latest.sleep_hours || '--') + '</div><div class="stat-label">Sleep (h)</div></div>' +
+      '<div class="stat-card"><div class="stat-value">' + (latest.weight_kg || '--') + '</div><div class="stat-label">Weight (kg)</div></div>';
+  } else {
+    healthEl.innerHTML = '<div class="stat-card"><div class="stat-value">--</div><div class="stat-label">No health data</div></div>';
+  }
+}
+
+// ---- ACTIVITIES ----
+var activitiesPage = 0;
+var activitiesLimit = 20;
+
+function loadActivities() {
+  var listEl = document.getElementById('activities-list');
+  var totalEl = document.getElementById('activities-total');
+  var pagEl = document.getElementById('activities-pagination');
+
+  var offset = activitiesPage * activitiesLimit;
+  try {
+    var data = apiGet('/activities/?limit=' + activitiesLimit + '&offset=' + offset);
+  } catch (e) {
+    listEl.innerHTML = '<li style="color:#ff8080;text-align:center;padding:20px;">Error loading activities: ' + e.message + '</li>';
+    return;
+  }
+
+  var total = data.total || 0;
+  totalEl.textContent = total + ' total activities';
+
+  var html = '';
+  var activityList = data.activities || [];
+  for (var i = 0; i < activityList.length; i++) {
+    var a = activityList[i];
+    html += '<li>' +
+      '<div onclick="openActivity(' + a.id + ')" style="flex:1;cursor:pointer">' +
+        '<div class="act-name">' + a.name + ' ' + sportBadge(a.sport) + '</div>' +
+        '<div class="act-meta">' + formatDate(a.start_time) + ' &middot; ' + (a.distance_km || 0).toFixed(1) + ' km' +
+        (a.moving_time_s ? ' &middot; ' + formatTime(a.moving_time_s) : '') + '</div></div>' +
+      '<div class="act-stats">' +
+        (a.avg_power_w ? '<span>' + a.avg_power_w + 'W</span>' : '') +
+        (a.avg_heartrate ? '<span>' + a.avg_heartrate + ' bpm</span>' : '') +
+        (a.elevation_gain_m ? '<span>' + a.elevation_gain_m + 'm</span>' : '') +
+      '</div>' +
+      '<button class="delete-btn" onclick="deleteActivity(' + a.id + ', event)">Delete</button>' +
+      '</li>';
+  }
+  if (activityList.length === 0) {
+    html = '<li style="color:#606080;text-align:center;padding:20px;">No activities found</li>';
+  }
+  listEl.innerHTML = html;
+
+  var totalPages = Math.max(1, Math.ceil(total / activitiesLimit));
+  var pagHtml = '';
+  pagHtml += '<button onclick="activitiesPage=Math.max(0,activitiesPage-1);loadActivities()" ' + (activitiesPage <= 0 ? 'disabled' : '') + '>Previous</button>';
+  pagHtml += '<span>Page ' + (activitiesPage + 1) + ' of ' + totalPages + '</span>';
+  pagHtml += '<button onclick="activitiesPage=Math.min(' + (totalPages - 1) + ',activitiesPage+1);loadActivities()" ' + (activitiesPage >= totalPages - 1 ? 'disabled' : '') + '>Next</button>';
+  pagEl.innerHTML = pagHtml;
+}
+
+function deleteActivity(id, event) {
+  if (event) event.stopPropagation();
+  if (!confirm('Delete activity #' + id + '?')) return;
+  try {
+    apiDelete('/activities/' + id);
+    loadActivities();
+  } catch (e) {
+    alert('Delete failed: ' + e.message);
+  }
+}
+
+// ---- ACTIVITY DETAIL ----
+var currentActivityData = null;
+var gpsMap = null;
+
+function openActivity(id) {
+  showPage('activity-detail');
+  document.getElementById('detail-title').textContent = 'Loading Activity #' + id + '...';
+  document.getElementById('detail-stats').innerHTML = '';
+  document.getElementById('gps-map').innerHTML = '';
+
+  var chartIds = ['chart-power', 'chart-hr', 'chart-cadence', 'chart-speed'];
+  for (var i = 0; i < chartIds.length; i++) {
+    destroyChart(chartIds[i]);
+  }
+
+  try {
+    var data = apiGet('/activities/' + id + '?streams=true');
+    currentActivityData = data;
+  } catch (e) {
+    document.getElementById('detail-title').textContent = 'Error loading activity';
+    document.getElementById('detail-stats').innerHTML = '<div class="stat-card"><div class="stat-value" style="color:red">Error</div><div class="stat-label">' + e.message + '</div></div>';
+    return;
+  }
+
+  var a = data;
+  document.getElementById('detail-title').textContent = a.name || ('Activity #' + a.id);
+
+  var tsbVal = '';
+  try {
+    var pmc = apiGet('/training/pmc');
+    if (pmc.length > 0) {
+      tsbVal = '<div class="stat-card"><div class="stat-value">' + pmc[pmc.length - 1].tsb.toFixed(1) + '</div><div class="stat-label">TSB</div></div>';
+    }
+  } catch (e) { /* ignore */ }
+
+  document.getElementById('detail-stats').innerHTML =
+    '<div class="stat-card"><div class="stat-value">' + (a.avg_power_w || '--') + '</div><div class="stat-label">Avg Power (W)</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + (a.normalized_power_w || '--') + '</div><div class="stat-label">NP (W)</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + (a.max_power_w || '--') + '</div><div class="stat-label">Max Power (W)</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + (a.avg_heartrate || '--') + '</div><div class="stat-label">Avg HR (bpm)</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + (a.avg_cadence || '--') + '</div><div class="stat-label">Avg Cadence</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + (a.distance_km || 0).toFixed(2) + '</div><div class="stat-label">Distance (km)</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + (a.elevation_gain_m || '--') + '</div><div class="stat-label">Elevation (m)</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + formatTime(a.moving_time_s || 0) + '</div><div class="stat-label">Moving Time</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + (a.tss || '--') + '</div><div class="stat-label">TSS</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + (a.intensity_factor || '--') + '</div><div class="stat-label">IF</div></div>' +
+    '<div class="stat-card"><div class="stat-value">' + (a.calories_kcal || '--') + '</div><div class="stat-label">Calories</div></div>' +
+    tsbVal;
+
+  var streams = data.streams || {};
+  var latData = streams.lat || [];
+  var lonData = streams.lon || [];
+  var hasGps = latData.length > 0 && lonData.length > 0;
+
+  if (hasGps) {
+    setTimeout(function() { renderGPSMap(latData, lonData); }, 100);
+  } else {
+    document.getElementById('gps-map').innerHTML = '<div style="padding:40px;text-align:center;color:#606080">No GPS data available</div>';
+  }
+
+  var timeData = streams.time || [];
+  if (timeData.length > 0) {
+    renderStreamChart('chart-power', 'Power (W)', timeData, streams.power, '#ff6b6b', true);
+    renderStreamChart('chart-hr', 'Heart Rate (bpm)', timeData, streams.heartrate, '#ff6b6b', false);
+    renderStreamChart('chart-cadence', 'Cadence (rpm)', timeData, streams.cadence, '#51cf66', false);
+    renderStreamChart('chart-speed', 'Speed (km/h)', timeData, streams.speed, '#339af0', false);
+  renderStreamChart('chart-altitude', 'Altitude (m)', timeData, streams.altitude, '#a855f7', false);
+  } else {
+    for (var i = 0; i < chartIds.length; i++) {
+      var canvas = document.getElementById(chartIds[i]);
+      if (canvas) {
+        canvas.parentElement.innerHTML = '<div style="padding:40px;text-align:center;color:#606080">No stream data available</div>';
+      }
+    }
+  }
+}
+
+function renderGPSMap(latData, lonData) {
+  var mapEl = document.getElementById('gps-map');
+  if (gpsMap) {
+    gpsMap.remove();
+    gpsMap = null;
+  }
+
+  var processedLat = [];
+  var processedLon = [];
+  for (var i = 0; i < latData.length; i++) {
+    var lat = latData[i];
+    var lon = lonData[i];
+    if (Math.abs(lat) > 90) {
+      lat = lat * 180 / 2147483648;
+    }
+    if (Math.abs(lon) > 180) {
+      lon = lon * 180 / 2147483648;
+    }
+    processedLat.push(lat);
+    processedLon.push(lon);
+  }
+
+  if (processedLat.length === 0) {
+    mapEl.innerHTML = '<div style="padding:40px;text-align:center;color:#606080">No valid GPS coordinates</div>';
+    return;
+  }
+
+  var bounds = L.latLngBounds();
+  var latlngs = [];
+  for (var i = 0; i < processedLat.length; i++) {
+    if (processedLat[i] !== null && processedLon[i] !== null) {
+      var ll = L.latLng(processedLat[i], processedLon[i]);
+      latlngs.push(ll);
+      bounds.extend(ll);
+    }
+  }
+
+  if (latlngs.length === 0) {
+    mapEl.innerHTML = '<div style="padding:40px;text-align:center;color:#606080">No valid GPS coordinates</div>';
+    return;
+  }
+
+  gpsMap = L.map('gps-map', { zoomControl: true });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 18
+  }).addTo(gpsMap);
+
+  L.polyline(latlngs, { color: '#00d4ff', weight: 3, opacity: 0.8 }).addTo(gpsMap);
+  if (latlngs.length > 0) {
+    L.circleMarker(latlngs[0], { radius: 5, color: '#51cf66', fillColor: '#51cf66', fillOpacity: 0.8 }).addTo(gpsMap).bindTooltip('Start');
+    L.circleMarker(latlngs[latlngs.length - 1], { radius: 5, color: '#ff6b6b', fillColor: '#ff6b6b', fillOpacity: 0.8 }).addTo(gpsMap).bindTooltip('End');
+  }
+
+  if (bounds.isValid()) {
+    gpsMap.fitBounds(bounds, { padding: [30, 30] });
+  } else {
+    gpsMap.setView(latlngs[0], 13);
+  }
+
+  setTimeout(function() { if (gpsMap) gpsMap.invalidateSize(); }, 200);
+}
+
+function renderStreamChart(canvasId, label, timeData, values, color, usePower) {
+  var canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+
+  destroyChart(canvasId);
+
+  var maxPoints = 3000;
+  var step = 1;
+  if (timeData.length > maxPoints) {
+    step = Math.ceil(timeData.length / maxPoints);
+  }
+
+  var labels = [];
+  var data = [];
+  for (var i = 0; i < timeData.length; i += step) {
+    labels.push((timeData[i] / 60).toFixed(1));
+    var val = values && i < values.length ? values[i] : null;
+    data.push(val);
+  }
+
+  var ctx = canvas.getContext('2d');
+  var chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: label,
+        data: data,
+        borderColor: color,
+        backgroundColor: color + '22',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: true,
+        tension: 0.1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      spanGaps: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            title: function(items) {
+              return items[0].label + ' min';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          display: true,
+          title: { display: true, text: 'Time (minutes)', color: '#8080a0' },
+          ticks: { color: '#8080a0', maxTicksLimit: 20 }
+        },
+        y: {
+          display: true,
+          title: { display: true, text: label, color: '#8080a0' },
+          ticks: { color: '#8080a0' },
+          beginAtZero: usePower ? false : true
+        }
+      }
+    }
+  });
+}
+
+// ---- HEALTH ----
+function loadHealth() {
+  try {
+    var data = apiGet('/health/checkins?days=90');
+  } catch (e) {
+    return;
+  }
+
+  var checkins = Array.isArray(data) ? data : [];
+  if (checkins.length === 0) {
+    document.getElementById('chart-hr-resting').parentElement.innerHTML = '<div style="padding:40px;text-align:center;color:#606080">No health data available</div>';
+    return;
+  }
+
+  checkins.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+
+  var dates = [];
+  var restingHr = [];
+  var hrvData = [];
+  var sleepData = [];
+var weightData = [];
+var bfData = [];
+
+  for (var i = 0; i < checkins.length; i++) {
+    var c = checkins[i];
+    var d = new Date(c.date);
+    dates.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    restingHr.push(c.resting_hr !== null ? c.resting_hr : null);
+    hrvData.push(c.hrv_rmssd !== null ? c.hrv_rmssd : null);
+    sleepData.push(c.sleep_hours !== null ? c.sleep_hours : null);
+    weightData.push(c.weight_kg !== null ? c.weight_kg : null);
+    bfData.push(c.body_fat_pct !== null ? c.body_fat_pct : null);
+  }
+
+  // Health snapshot summary (latest values)
+  var summaryEl = document.getElementById('health-summary');
+  if (summaryEl && checkins.length > 0) {
+    var l = checkins[checkins.length - 1];
+    summaryEl.innerHTML =
+      '<div class="stat-card"><div class="stat-value">'+(l.resting_hr?Math.round(l.resting_hr):'--')+'</div><div class="stat-label">RHR (bpm)</div></div>'+
+      '<div class="stat-card"><div class="stat-value">'+(l.hrv_rmssd?Math.round(l.hrv_rmssd):'--')+'</div><div class="stat-label">HRV (ms)</div></div>'+
+      '<div class="stat-card"><div class="stat-value">'+(l.sleep_hours?l.sleep_hours.toFixed(1):'--')+'</div><div class="stat-label">Sleep (hrs)</div></div>'+
+      '<div class="stat-card"><div class="stat-value">'+(l.weight_kg?l.weight_kg.toFixed(1):'--')+'</div><div class="stat-label">Weight (kg)</div></div>'+
+      '<div class="stat-card"><div class="stat-value">'+(l.body_fat_pct?l.body_fat_pct.toFixed(1):'--')+'</div><div class="stat-label">Body Fat (%)</div></div>';
+  }
+
+  makeHealthChart('chart-hr-resting', 'Resting HR (bpm)', dates, restingHr, '#ff6b6b');
+  makeHealthChart('chart-hrv', 'HRV RMSSD (ms)', dates, hrvData, '#51cf66');
+  makeHealthChart('chart-sleep', 'Sleep Hours', dates, sleepData, '#339af0');
+  makeHealthChart('chart-weight', 'Weight (kg)', dates, weightData, '#00d4ff');
+  makeHealthChart('chart-bf', 'Body Fat (%)', dates, bfData, '#f39c12');
+}
+
+function makeHealthChart(canvasId, label, labels, data, color) {
+  destroyChart(canvasId);
+  var canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: label,
+        data: data,
+        borderColor: color,
+        backgroundColor: color + '33',
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: color,
+        fill: true,
+        tension: 0.2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      spanGaps: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { mode: 'index', intersect: false }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#8080a0', maxTicksLimit: 15 },
+          grid: { color: '#2a2a40' }
+        },
+        y: {
+          ticks: { color: '#8080a0' },
+          grid: { color: '#2a2a40' },
+          beginAtZero: false
+        }
+      }
+    }
+  });
+}
+
+// ---- PMC ----
+function loadPMC() {
+  try {
+    var data = apiGet('/training/pmc');
+  } catch (e) {
+    document.getElementById('chart-pmc').parentElement.innerHTML = '<div style="padding:40px;text-align:center;color:#606080">No PMC data available</div>';
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    document.getElementById('chart-pmc').parentElement.innerHTML = '<div style="padding:40px;text-align:center;color:#606080">No PMC data available</div>';
+    return;
+  }
+
+  var labels = [];
+  var ctlData = [];
+  var atlData = [];
+  var tsbData = [];
+  var tssData = [];
+
+  for (var i = 0; i < data.length; i++) {
+    var d = data[i];
+    labels.push(new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    ctlData.push(d.ctl || 0);
+    atlData.push(d.atl || 0);
+    tsbData.push(d.tsb || 0);
+    tssData.push(d.daily_tss || 0);
+  }
+
+  // Latest stats
+  var statsEl = document.getElementById('pmc-stats');
+  if (statsEl) {
+    var last = data[data.length - 1];
+    statsEl.innerHTML =
+      '<div class="stat-card"><div class="stat-value">' + (last.ctl ? last.ctl.toFixed(1) : '--') + '</div><div class="stat-label">CTL (Fitness)</div></div>' +
+      '<div class="stat-card"><div class="stat-value">' + (last.atl ? last.atl.toFixed(1) : '--') + '</div><div class="stat-label">ATL (Fatigue)</div></div>' +
+      '<div class="stat-card"><div class="stat-value">' + (last.tsb ? last.tsb.toFixed(1) : '--') + '</div><div class="stat-label">TSB (Form)</div></div>' +
+      '<div class="stat-card"><div class="stat-value">' + (last.daily_tss ? Math.round(last.daily_tss) : '0') + '</div><div class="stat-label">Today TSS</div></div>';
+  }
+
+  destroyChart('chart-pmc');
+  var canvas = document.getElementById('chart-pmc');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'CTL (Fitness)', data: ctlData, borderColor: '#51cf66', backgroundColor: '#51cf6633', borderWidth: 2, pointRadius: 2, fill: false, tension: 0.2 },
+        { label: 'ATL (Fatigue)', data: atlData, borderColor: '#ff6b6b', backgroundColor: '#ff6b6b33', borderWidth: 2, pointRadius: 2, fill: false, tension: 0.2 },
+        { label: 'TSB (Form)', data: tsbData, borderColor: '#339af0', backgroundColor: '#339af033', borderWidth: 2, pointRadius: 2, fill: false, tension: 0.2 },
+        { label: 'Daily TSS', data: tssData, borderColor: '#f0c040', backgroundColor: '#f0c04033', borderWidth: 1, pointRadius: 1, fill: false, tension: 0.1, borderDash: [4, 4] }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: { labels: { color: '#e0e0e0' } },
+        tooltip: { mode: 'index', intersect: false }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#8080a0', maxTicksLimit: 20 },
+          grid: { color: '#2a2a40' }
+        },
+        y: {
+          ticks: { color: '#8080a0' },
+          grid: { color: '#2a2a40' }
+        }
+      }
+    }
+  });
+}
+
+// ---- POWER CURVE ----
+function loadPowerCurve() {
+  try {
+    var data = apiGet('/training/power-curve');
+  } catch (e) {
+    document.getElementById('chart-power-curve').parentElement.innerHTML = '<div style="padding:40px;text-align:center;color:#606080">No power curve data available</div>';
+    return;
+  }
+
+  var curve = data.curve || {};
+  var keys = Object.keys(curve).sort(function(a, b) { return parseInt(a) - parseInt(b); });
+  if (keys.length === 0) {
+    document.getElementById('chart-power-curve').parentElement.innerHTML = '<div style="padding:40px;text-align:center;color:#606080">No power curve data available</div>';
+    return;
+  }
+
+  var labels = [];
+  var values = [];
+  var step = Math.max(1, Math.floor(keys.length / 100));
+  for (var i = 0; i < keys.length; i += step) {
+    var k = parseInt(keys[i]);
+    if (k < 60) {
+      labels.push(k + 's');
+    } else if (k < 3600) {
+      labels.push(Math.floor(k / 60) + 'm');
+    } else {
+      labels.push(Math.floor(k / 3600) + 'h');
+    }
+    values.push(curve[keys[i]]);
+  }
+
+  destroyChart('chart-power-curve');
+  var canvas = document.getElementById('chart-power-curve');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Best Power (W)',
+        data: values,
+        borderColor: '#00d4ff',
+        backgroundColor: '#00d4ff33',
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: '#00d4ff',
+        fill: true,
+        tension: 0.2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return context.parsed.y + ' W';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#8080a0' },
+          grid: { color: '#2a2a40' },
+          title: { display: true, text: 'Duration', color: '#8080a0' }
+        },
+        y: {
+          ticks: { color: '#8080a0' },
+          grid: { color: '#2a2a40' },
+          title: { display: true, text: 'Power (W)', color: '#8080a0' },
+          beginAtZero: false
+        }
+      }
+    }
+  });
+}
+
+// ---- POWER PROFILE ----
+function loadPowerProfile() {
+  try {
+    var data = apiGet('/training/power-profile');
+  } catch (e) {
+    document.getElementById('chart-power-profile').parentElement.innerHTML = '<div style="padding:40px;text-align:center;color:#606080">No power profile data available</div>';
+    return;
+  }
+
+  var profile = data.profile || {};
+  var keys = Object.keys(profile);
+  if (keys.length === 0) {
+    document.getElementById('chart-power-profile').parentElement.innerHTML = '<div style="padding:40px;text-align:center;color:#606080">No power profile data available</div>';
+    return;
+  }
+
+  var labels = [];
+  var values = [];
+  var sortedKeys = ['5s', '1m', '5m', '20m', '60m', 'FTP'];
+  for (var i = 0; i < sortedKeys.length; i++) {
+    if (profile[sortedKeys[i]] !== undefined) {
+      labels.push(sortedKeys[i] === 'FTP' ? 'Est. FTP' : sortedKeys[i]);
+      values.push(profile[sortedKeys[i]]);
+    }
+  }
+
+  for (var key in profile) {
+    if (sortedKeys.indexOf(key) === -1) {
+      labels.push(key);
+      values.push(profile[key]);
+    }
+  }
+
+destroyChart('chart-power-profile');
+  var canvas = document.getElementById('chart-power-profile');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Power (W)',
+        data: values,
+        backgroundColor: '#00d4ff88',
+        borderColor: '#00d4ff',
+        borderWidth: 1,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return context.parsed.y + ' W';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#8080a0' },
+          grid: { display: false }
+        },
+        y: {
+          ticks: { color: '#8080a0' },
+          grid: { color: '#2a2a40' },
+          title: { display: true, text: 'Power (W)', color: '#8080a0' },
+          beginAtZero: false
+        }
+      }
+    }
+  });
+}
+
+// ---- SETTINGS ----
+function loadSettings() {
+  try {
+    var ftpData = apiGet('/training/ftp');
+    document.getElementById('ftp-current').textContent = (ftpData.ftp || 0) + ' W';
+  } catch (e) {
+    document.getElementById('ftp-current').textContent = 'Error';
+  }
+
+  try {
+    var wahooData = apiGet('/wahoo/status');
+    var wahooHtml = '';
+    if (wahooData.configured && wahooData.accounts && wahooData.accounts.length > 0) {
+      var account = wahooData.accounts[0];
+      wahooHtml = '<div class="status-msg success">Connected: ' + account.first_name + ' ' + account.last_name + '</div>';
+    } else {
+      wahooHtml = '<div class="status-msg info">Not connected. Click below to connect your Wahoo account.</div>';
+    }
+    document.getElementById('wahoo-status').innerHTML = wahooHtml;
+  } catch (e) {
+    document.getElementById('wahoo-status').innerHTML = '<div class="status-msg error">Error: ' + e.message + '</div>';
+  }
+
+  try {
+    var garminData = apiGet('/garmin/status');
+    var garminHtml = '';
+    if (garminData.configured) {
+      garminHtml = '<div class="status-msg success">Configured: ' + (garminData.email || 'yes') + '</div>';
+    } else {
+      garminHtml = '<div class="status-msg info">Not configured. Enter your Garmin credentials below.</div>';
+    }
+    document.getElementById('garmin-status').innerHTML = garminHtml;
+    if (garminData.email && garminData.email !== '') {
+      document.getElementById('garmin-email').value = garminData.email;
+    }
+  } catch (e) {
+    document.getElementById('garmin-status').innerHTML = '<div class="status-msg error">Error: ' + e.message + '</div>';
+  }
+}
+
+function updateFTP() {
+  var val = document.getElementById('ftp-input').value;
+  if (!val || isNaN(val) || parseInt(val) <= 0) {
+    document.getElementById('ftp-status').innerHTML = '<div class="status-msg error">Please enter a valid FTP value</div>';
+    return;
+  }
+  try {
+    apiPost('/training/recompute?ftp=' + parseInt(val), null);
+    document.getElementById('ftp-status').innerHTML = '<div class="status-msg success">FTP updated to ' + parseInt(val) + ' W</div>';
+    document.getElementById('ftp-current').textContent = parseInt(val) + ' W';
+    document.getElementById('ftp-input').value = '';
+  } catch (e) {
+    document.getElementById('ftp-status').innerHTML = '<div class="status-msg error">Failed: ' + e.message + '</div>';
+  }
+}
+
+function recomputeTSS() {
+  try {
+    apiPost('/training/recompute', null);
+    document.getElementById('ftp-status').innerHTML = '<div class="status-msg success">TSS recomputed successfully</div>';
+    var ftpData = apiGet('/training/ftp');
+    document.getElementById('ftp-current').textContent = (ftpData.ftp || 0) + ' W';
+  } catch (e) {
+    document.getElementById('ftp-status').innerHTML = '<div class="status-msg error">Failed: ' + e.message + '</div>';
+  }
+}
+
+function wahooConnect() {
+  try {
+    var data = apiGet('/wahoo/auth-url');
+    if (data.auth_url) {
+      window.open(data.auth_url, '_blank');
+      document.getElementById('wahoo-status').innerHTML = '<div class="status-msg info">Wahoo authorization opened in new tab. Refresh this page after authorizing.</div>';
+    } else {
+      document.getElementById('wahoo-status').innerHTML = '<div class="status-msg error">No auth URL returned</div>';
+    }
+  } catch (e) {
+    document.getElementById('wahoo-status').innerHTML = '<div class="status-msg error">Error: ' + e.message + '</div>';
+  }
+}
+
+function wahooSync() {
+  var el = document.getElementById('wahoo-status');
+  el.innerHTML = '<div class="status-msg info">Syncing Wahoo activities...</div>';
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', API_BASE + '/wahoo/sync', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.onload = function() {
+    if (xhr.status >= 200 && xhr.status < 300) {
+      try {
+        var result = JSON.parse(xhr.responseText);
+        var count = result && result.results && result.results.length > 0 ? result.results[0].new_workouts || 0 : 0;
+        el.innerHTML = '<div class="status-msg success">Wahoo sync complete. ' + count + ' new workouts.</div>';
+        loadActivities();
+        loadDashboard();
+      } catch(e) {
+        el.innerHTML = '<div class="status-msg success">Wahoo sync complete.</div>';
+        loadActivities();
+      }
+    } else {
+      el.innerHTML = '<div class="status-msg error">Wahoo sync failed: ' + xhr.statusText + '</div>';
+    }
+  };
+  xhr.onerror = function() {
+    el.innerHTML = '<div class="status-msg error">Wahoo sync failed: network error</div>';
+  };
+  xhr.send(null);
+}
+
+function garminConfigure() {
+  var email = document.getElementById('garmin-email').value;
+  var password = document.getElementById('garmin-password').value;
+  if (!email || !password) {
+    document.getElementById('garmin-status').innerHTML = '<div class="status-msg error">Please enter email and password</div>';
+    return;
+  }
+  document.getElementById('garmin-status').innerHTML = '<div class="status-msg info">Configuring Garmin...</div>';
+  try {
+    apiPost('/garmin/status', { email: email, password: password });
+    document.getElementById('garmin-status').innerHTML = '<div class="status-msg success">Garmin configured successfully!</div>';
+    document.getElementById('garmin-password').value = '';
+  } catch (e) {
+    document.getElementById('garmin-status').innerHTML = '<div class="status-msg error">Garmin configure failed: ' + e.message + '</div>';
+  }
+}
+
+function garminSync() {
+  var el = document.getElementById('garmin-status');
+  el.innerHTML = '<div class="status-msg info">Syncing all Garmin data...</div>';
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', API_BASE + '/garmin/sync', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.onload = function() {
+    if (xhr.status >= 200 && xhr.status < 300) {
+      el.innerHTML = '<div class="status-msg success">Garmin sync completed!</div>';
+      loadActivities();
+    } else {
+      el.innerHTML = '<div class="status-msg error">Garmin sync failed: ' + xhr.statusText + '</div>';
+    }
+  };
+  xhr.onerror = function() {
+    el.innerHTML = '<div class="status-msg error">Garmin sync failed: network error</div>';
+  };
+  xhr.send(null);
+}
+
+function garminSyncHealth() {
+  var el = document.getElementById('garmin-status');
+  el.innerHTML = '<div class="status-msg info">Syncing Garmin health data...</div>';
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', API_BASE + '/garmin/sync?health_only=true', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.onload = function() {
+    if (xhr.status >= 200 && xhr.status < 300) {
+      el.innerHTML = '<div class="status-msg success">Garmin health sync completed!</div>';
+    } else {
+      el.innerHTML = '<div class="status-msg error">Garmin health sync failed: ' + xhr.statusText + '</div>';
+    }
+  };
+  xhr.onerror = function() {
+    el.innerHTML = '<div class="status-msg error">Garmin health sync failed: network error</div>';
+  };
+  xhr.send(null);
+}
+
+// ---- INIT ----
+showPage('dashboard');
+</script>
+</body>
+</html>
