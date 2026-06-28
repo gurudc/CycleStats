@@ -110,8 +110,8 @@ function populateActivitiesList(data, el) {
     var meta = a.sport || "Ride";
     if (a.start_time) meta += " &middot; " + new Date(a.start_time).toLocaleDateString();
     html += "<li onclick=\"openActivity(" + a.id + "); showPage('activity-detail')\">" +
-      '<div><div class="act-name">' + (a.name || "Activity #" + a.id) + '</div><div class="act-meta">' + meta + '</div></div>' +
-      '<div class="act-stats">' + (a.tss ? '<span>' + Math.round(a.tss) + " TSS</span>" : "") + (a.distance_km ? '<span>' + a.distance_km.toFixed(1) + " km</span>" : "") + '</div></li>';
+      '<div><div class="act-name">' + esc(a.name) || "Activity #" + a.id + '</div><div class="act-meta">' + esc(meta) + '</div></div>' +
+      '<div class="act-stats">' + (a.tss ? '<span>' + esc(Math.round(a.tss)) + " TSS</span>" : "") + (a.distance_km ? '<span>' + esc(a.distance_km.toFixed(1)) + " km</span>" : "") + '</div></li>';
   });
   el.innerHTML = html;
 }
@@ -171,8 +171,8 @@ async function loadActivities() {
       var meta = a.sport || "Ride";
       if (a.start_time) meta += " &middot; " + new Date(a.start_time).toLocaleDateString();
       html += "<li onclick=\"openActivity(" + a.id + "); showPage('activity-detail')\">" +
-        '<div><div class="act-name">' + (a.name || "Activity #" + a.id) + '</div><div class="act-meta">' + meta + '</div></div>' +
-        '<div class="act-stats">' + (a.tss ? '<span>' + Math.round(a.tss) + " TSS</span>" : "") + (a.distance_km ? '<span>' + a.distance_km.toFixed(1) + " km</span>" : "") + '</div>' +
+        '<div><div class="act-name">' + esc(a.name) || "Activity #" + a.id + '</div><div class="act-meta">' + esc(meta) + '</div></div>' +
+        '<div class="act-stats">' + (a.tss ? '<span>' + esc(Math.round(a.tss)) + " TSS</span>" : "") + (a.distance_km ? '<span>' + esc(a.distance_km.toFixed(1)) + " km</span>" : "") + '</div>' +
         '<button class="delete-btn" onclick=\"event.stopPropagation(); deleteActivity(' + a.id + ')" style="margin-left:8px">&times;</button></li>';
     });
     // no closing ul needed
@@ -264,7 +264,7 @@ async function openActivity(id) {
           }
           if (hrRow) hrRow = '<div class="stat-grid" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;margin-bottom:10px">' + hrRow + '</div>';
         }
-        var h = hrRow + st + '<div style="font-size:14px;line-height:1.6;color:var(--text-secondary);padding:4px 0 8px;border-bottom:1px solid var(--border-light)\">' + mt + "</div>";
+        var h = hrRow + st + '<div style="font-size:14px;line-height:1.6;color:var(--text-secondary);padding:4px 0 8px;border-bottom:1px solid var(--border-light)\">' + esc(mt) + "</div>";
         if (tp) h += '<div style="display:flex;gap:10px;align-items:start;margin-top:10px;padding:10px 12px;background:var(--bg-nav-active);border-radius:6px"><span style="font-size:16px">&#10024;</span><div><div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:2px">Coach Tip</div><div style="font-size:13px;color:var(--text-secondary)\">' + esc(tp) + '</div></div></div>';
         
                 // Notes & Tags card
@@ -279,7 +279,7 @@ async function openActivity(id) {
           var active = nv.indexOf(tag) >= 0 ? " background:var(--accent);color:#fff" : " background:var(--bg-nav-active);color:var(--text-secondary)";
           h += '<span class="tag-btn" data-tag="' + esc(tag) + '" style="display:inline-block;cursor:pointer;padding:3px 10px;border-radius:12px;font-size:12px;margin:3px;' + active + '" onclick="toggleTag(' + a.id + ',this)">' + esc(tag) + '</span>';
         }
-        h += '</div><textarea id="notes-text-' + a.id + '" style="width:100%;min-height:50px;padding:8px;border-radius:6px;border:1px solid var(--border-light);background:var(--bg-card);color:var(--text-primary);font-size:13px;resize:vertical">' + nv + '</textarea>';
+        h += '</div><textarea id="notes-text-' + a.id + '" style="width:100%;min-height:50px;padding:8px;border-radius:6px;border:1px solid var(--border-light);background:var(--bg-card);color:var(--text-primary);font-size:13px;resize:vertical">' + esc(nv) + '</textarea>';
         h += '<button class="btn" style="margin-top:6px;font-size:12px" onclick="saveNotes(' + a.id + ')">Save Notes</button></div>';
         // Load gear dropdown
         fetch("/api/gear/").then(function(r){return r.json()}).then(function(items){
