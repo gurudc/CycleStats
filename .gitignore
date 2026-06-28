@@ -1,0 +1,30 @@
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+data/*.json
+
+# Environment
+.env
+.env.*
+**/env.conf
+cloudflare.ini
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Backups
+backups/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+test_*.py
+test_*.sh
