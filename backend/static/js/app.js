@@ -14,7 +14,7 @@ async function checkAuth() {
       showPage(hash || "dashboard");
       return;
     }
-  } catch(e) {}
+  } catch(e) { console.warn(e); }
   ls.style.display = "flex";
   main.style.display = "none";
 }
@@ -141,7 +141,7 @@ async function loadDashboard() {
   try {
     var ins = await apiGet("/training/insights");
     if (ins.insights && ins.insights.length > 0) { var card = document.getElementById("dash-insights-card"); if (card) card.style.display = "block"; renderInsights(ins.insights.slice(0, 3), "dash-insights"); }
-  } catch(e) {}
+  } catch(e) { console.warn(e); }
 }
 
 // ── Activities ────────────────────────────────────────────
@@ -209,7 +209,7 @@ async function openActivity(id) {
     var a = await apiGet("/activities/" + id + "?streams=true");
     document.getElementById("detail-title").textContent = a.name || ("Activity #" + a.id);
     var tsbV = "";
-    try { var pmc = await apiGet("/training/pmc"); if (pmc && pmc.length > 0) tsbV = '<div class="stat-card"><div class="stat-value">' + pmc[pmc.length-1].tsb.toFixed(1) + '</div><div class="stat-label">TSB</div></div>'; } catch(e) {}
+    try { var pmc = await apiGet("/training/pmc"); if (pmc && pmc.length > 0) tsbV = '<div class="stat-card"><div class="stat-value">' + pmc[pmc.length-1].tsb.toFixed(1) + '</div><div class="stat-label">TSB</div></div>'; } catch(e) { console.warn(e); }
     document.getElementById("detail-stats").innerHTML =
       '<div class="stat-card"><div class="stat-value">' + (a.avg_power_w || "--") + '</div><div class="stat-label">Avg Power (W)</div></div>' +
       '<div class="stat-card"><div class="stat-value">' + (a.normalized_power_w || "--") + '</div><div class="stat-label">NP (W)</div></div>' +
@@ -299,7 +299,7 @@ async function openActivity(id) {
     if (t.length > 0) {
       var pz = null;
       if (s.power && s.power.length > 10) {
-        try { var fr = await apiGet("/training/ftp"); var fv = fr.ftp || 200; pz = [{n:"Z1",lw:0,hw:Math.round(fv*0.55),c:"#95a5a6"},{n:"Z2",lw:Math.round(fv*0.55),hw:Math.round(fv*0.75),c:"#27ae60"},{n:"Z3",lw:Math.round(fv*0.75),hw:Math.round(fv*0.90),c:"#f1c40f"},{n:"Z4",lw:Math.round(fv*0.90),hw:Math.round(fv*1.05),c:"#e67e22"},{n:"Z5",lw:Math.round(fv*1.05),hw:Math.round(fv*1.20),c:"#e74c3c"},{n:"Z6",lw:Math.round(fv*1.20),hw:Math.round(fv*1.50),c:"#9b59b6"},{n:"Z7",lw:Math.round(fv*1.50),hw:9999,c:"#8e44ad"}]; } catch(e) {}
+        try { var fr = await apiGet("/training/ftp"); var fv = fr.ftp || 200; pz = [{n:"Z1",lw:0,hw:Math.round(fv*0.55),c:"#95a5a6"},{n:"Z2",lw:Math.round(fv*0.55),hw:Math.round(fv*0.75),c:"#27ae60"},{n:"Z3",lw:Math.round(fv*0.75),hw:Math.round(fv*0.90),c:"#f1c40f"},{n:"Z4",lw:Math.round(fv*0.90),hw:Math.round(fv*1.05),c:"#e67e22"},{n:"Z5",lw:Math.round(fv*1.05),hw:Math.round(fv*1.20),c:"#e74c3c"},{n:"Z6",lw:Math.round(fv*1.20),hw:Math.round(fv*1.50),c:"#9b59b6"},{n:"Z7",lw:Math.round(fv*1.50),hw:9999,c:"#8e44ad"}]; } catch(e) { console.warn(e); }
       }
       renderStreamChart("chart-power","Power (W)", t, s.power, "#ff6b6b", true, pz);
       renderStreamChart("chart-hr","Heart Rate (bpm)", t, s.heartrate, "#ff6b6b", false);
@@ -377,7 +377,7 @@ async function loadPMC() {
       ]},
       options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { labels: { color: "#e0e0e0" } } }, scales: { x: { ticks: { color: "#8080a0" }, grid: { color: "#2a2a40" } }, y: { ticks: { color: "#8080a0" }, grid: { color: "#2a2a40" } } } }
     });
-  } catch(e) {}
+  } catch(e) { console.warn(e); }
 }
 
 // ── Power Curve ────────────────────────────────────────────
@@ -388,7 +388,7 @@ async function loadPowerCurve() {
     var lb = Object.keys(cv).sort(function(a,b){return parseInt(a)-parseInt(b);});
     var vl = lb.map(function(l){return Math.round(cv[l]);});
     var pp = d.power_profile || {};
-    var ftpV = 0; try { var fr = await apiGet("/training/ftp"); ftpV = fr.ftp || 0; } catch(e) {}
+    var ftpV = 0; try { var fr = await apiGet("/training/ftp"); ftpV = fr.ftp || 0; } catch(e) { console.warn(e); }
     c.innerHTML = '<div class="card"><div class="chart-container"><canvas id="chart-power-curve"></canvas></div></div>';
     chartInstances["chart-power-curve"] = new Chart(document.getElementById("chart-power-curve").getContext("2d"), {
       type: "line",
@@ -474,7 +474,7 @@ async function loadInsights() {
   var c = document.getElementById("insights-container"); if (!c) return;
   c.innerHTML = '<div class="loading-overlay"><div class="spinner"></div><span>Analyzing...</span></div>';
   var cc = document.getElementById("coach-card"); if(cc)cc.style.display="none";
-  try { var ch = await apiGet("/coach/latest"); if(ch&&ch.note&&cc){cc.style.display="block";cc.innerHTML='<div class="card" style="border-left:4px solid var(--accent);margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><h2 style="margin:0">AI Coach</h2><span style="font-size:12px;color:var(--text-muted)\">'+(ch.date?new Date(ch.date).toLocaleDateString():"")+'</span></div><div style="font-size:15px;line-height:1.5;color:var(--text-primary);padding:4px 0">'+ch.note+'</div><div style="margin-top:8px"><a href="#" onclick=\"toggleCoachHistory()" style="color:var(--accent);font-size:12px">View history</a></div><div id="coach-history" style="display:none;margin-top:12px;border-top:1px solid var(--border-light);padding-top:12px"></div></div>';} } catch(e) {}
+  try { var ch = await apiGet("/coach/latest"); if(ch&&ch.note&&cc){cc.style.display="block";cc.innerHTML='<div class="card" style="border-left:4px solid var(--accent);margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><h2 style="margin:0">AI Coach</h2><span style="font-size:12px;color:var(--text-muted)\">'+(ch.date?new Date(ch.date).toLocaleDateString():"")+'</span></div><div style="font-size:15px;line-height:1.5;color:var(--text-primary);padding:4px 0">'+ch.note+'</div><div style="margin-top:8px"><a href="#" onclick=\"toggleCoachHistory()" style="color:var(--accent);font-size:12px">View history</a></div><div id="coach-history" style="display:none;margin-top:12px;border-top:1px solid var(--border-light);padding-top:12px"></div></div>';} } catch(e) { console.warn(e); }
   try { var d = await apiGet("/training/insights"); renderInsights(d.insights, "insights-container"); setTimeout(loadPMC,100); } catch(e) { c.innerHTML = '<div class="status-msg error">'+esc(e.message)+"</div>"; }
 }
 

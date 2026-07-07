@@ -1,3 +1,4 @@
+import logging; logger = logging.getLogger(__name__)
 from routers.auth import require_session
 # Segments router - Strava-style segments with auto-detection
 from fastapi import APIRouter, Depends

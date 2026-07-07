@@ -1,3 +1,5 @@
+import logging; logger = logging.getLogger(__name__)
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from services.strava_client import StravaClient
 from database import Activity, get_db

@@ -1,3 +1,4 @@
+import logging; logger = logging.getLogger(__name__)
 from routers.auth import require_session
 from routers.auth import require_session
 """Training load and power-duration endpoints."""
