@@ -595,4 +595,13 @@ async function deleteGear(id) {
   } catch(e) { alert("Error: " + e.message); }
 }
 
+async function recomputeTSS(){
+  if(!confirm("Recalculate all TSS and PMC with current FTP?")) return;
+  var ftpV=document.getElementById("ftp-value").value || 236;
+  try {
+    await apiPost("/training/recompute?ftp="+ftpV);
+    alert("TSS and PMC recalculated.");
+  } catch(e) { alert("Error: "+e.message); }
+}
+
 async function updateFTP(){var v=document.getElementById("ftp-value").value;if(!v||isNaN(v)){alert("Enter a valid FTP value");return;}try{await apiPost("/training/ftp?ftp="+encodeURIComponent(v));alert("FTP saved as "+v+"W"); document.getElementById("ftp-current").textContent = v + "W"; var zv = document.getElementById("zones-ftp-value"); if (zv) zv.textContent = v + " W"; }catch(e){alert("Error: "+e.message);}}

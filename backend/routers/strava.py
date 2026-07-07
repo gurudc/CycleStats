@@ -2,6 +2,18 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from services.strava_client import StravaClient
 from database import Activity, get_db
 from routers.auth import require_session
+
+def _get_saved_ftp(default=236):
+    try:
+        import json, os
+        path = os.path.join(os.path.dirname(__file__), "data", "ftp_setting.json")
+        if os.path.exists(path):
+            with open(path) as f:
+                return json.load(f).get("ftp", default)
+    except:
+        pass
+    return default
+
 from datetime import datetime, timedelta
 from fastapi import Request
 import os
@@ -83,7 +95,7 @@ def import_activities(limit: int = 50, db = Depends(get_db), client: StravaClien
         else:
             if new_activity.avg_power_w and new_activity.moving_time_s:
                 ap = new_activity.avg_power_w
-                ftp = 236
+                ftp = _get_saved_ftp()
                 # Estimate NP as ~1.03x avg power for steady rides, up to 1.15x for punchy
                 est_np = min(ap * 1.10, new_activity.max_power_w or ap * 1.3)
                 if_val = round(est_np / ftp, 2) if ftp > 0 else 0
@@ -94,6 +106,15 @@ def import_activities(limit: int = 50, db = Depends(get_db), client: StravaClien
                 new_activity.tss = tss_val
                 new_activity.calories_kcal = cal_val
         
+
+                ftp = _get_saved_ftp()
+                try:
+                    import json, os
+                    with open(os.path.join(os.path.dirname(__file__), "data", "ftp_setting.json")) as fp:
+                        ftp = json.load(fp).get("ftp", 236)
+                except:
+                    pass
+
         imported += 1
         try:
             new_activity.ai_insight = _generate_insight_for(new_activity)
@@ -566,7 +587,14 @@ def _generate_insight_for(act):
     return main
 
 
-def _compute_power_metrics(streams, ftp=236):
+def _compute_power_metrics(streams, ftp=None):
+    if ftp is None:
+        import json, os
+        try:
+            with open(os.path.join(os.path.dirname(__file__), "data", "ftp_setting.json")) as f:
+                ftp = json.load(f).get("ftp", 236)
+        except:
+            ftp = 236
     """Compute NP, TSS, IF, calories from power stream data."""
     wd = streams.get("watts", {})
     watts = wd.get("data", []) if isinstance(wd, dict) else (wd or [])
