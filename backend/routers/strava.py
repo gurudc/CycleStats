@@ -12,7 +12,7 @@ def _get_saved_ftp(default=236):
         if os.path.exists(path):
             with open(path) as f:
                 return json.load(f).get("ftp", default)
-    except:
+    except Exception:
         pass
     return default
 
@@ -49,7 +49,7 @@ def import_activities(limit: int = 50, db = Depends(get_db), client: StravaClien
         if act.get("start_date_local"):
             try:
                 start_time = datetime.fromisoformat(act["start_date_local"].replace("Z", "+00:00"))
-            except:
+            except Exception:
                 pass
         
         elapsed = act.get("elapsed_time", 0)
@@ -83,7 +83,7 @@ def import_activities(limit: int = 50, db = Depends(get_db), client: StravaClien
         
         try:
             new_activity.streams = client.get_streams(strava_id)
-        except:
+        except Exception:
             pass
         
         # Compute NP/TSS/IF/calories from streams, or estimate from avg_power
@@ -114,13 +114,13 @@ def import_activities(limit: int = 50, db = Depends(get_db), client: StravaClien
                     import json, os
                     with open(os.path.join(os.path.dirname(__file__), "data", "ftp_setting.json")) as fp:
                         ftp = json.load(fp).get("ftp", 236)
-                except:
+                except Exception:
                     pass
 
         imported += 1
         try:
             new_activity.ai_insight = _generate_insight_for(new_activity)
-        except:
+        except Exception:
             pass
     
     try:
@@ -138,7 +138,7 @@ def import_activities(limit: int = 50, db = Depends(get_db), client: StravaClien
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 env={**os.environ}
             )
-        except:
+        except Exception:
             pass
     
     return {"imported": imported, "skipped": skipped, "total": len(all_activities)}
@@ -156,7 +156,7 @@ def backup_streams(limit: int = 50, db = Depends(get_db), client: StravaClient =
         try:
             act.streams = client.get_streams(strava_id)
             backed_up += 1
-        except:
+        except Exception:
             pass
     
     db.commit()
@@ -595,7 +595,7 @@ def _compute_power_metrics(streams, ftp=None):
         try:
             with open(os.path.join(os.path.dirname(__file__), "data", "ftp_setting.json")) as f:
                 ftp = json.load(f).get("ftp", 236)
-        except:
+        except Exception as e:
             ftp = 236
     """Compute NP, TSS, IF, calories from power stream data."""
     wd = streams.get("watts", {})
