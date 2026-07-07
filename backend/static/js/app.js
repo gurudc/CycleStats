@@ -5,7 +5,7 @@ async function checkAuth() {
   var main = document.querySelector(".main");
   if (!ls || !main) return;
   try {
-    var r = await fetch("/api/strava/status", {credentials: "include"});
+    var r = await fetch("/api/strava/me", {credentials: "include"});
     if (r.ok) {
       ls.style.display = "none";
       main.style.display = "block";
