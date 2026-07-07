@@ -582,7 +582,7 @@ def _generate_insight_for(act):
     
     main = ". ".join(p for p in parts) + "." if parts else ""
     if tip_parts:
-        main += " |TIP: " + tip_parts[0].encode("ascii", "ignore").decode("ascii")
+        main += " |TIP: " + tip_parts[0]
     
     return main
 
