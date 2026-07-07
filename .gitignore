@@ -41,3 +41,9 @@ scripts/
 *.sqlite3
 .DS_Store
 >>>>>>> d31f8cd76d9ad2bfed41dbfc55048e5411b3334f
+*.bak
+*.crash
+*.pyc
+__pycache__/
+delete_activities.py
+frontend/
