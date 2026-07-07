@@ -595,4 +595,4 @@ async function deleteGear(id) {
   } catch(e) { alert("Error: " + e.message); }
 }
 
-async function saveFTP(){var v=document.getElementById("ftp-value").value;if(!v||isNaN(v)){alert("Enter a valid FTP value");return;}try{await apiPost("/training/ftp?ftp="+encodeURIComponent(v));alert("FTP saved as "+v+"W");}catch(e){alert("Error: "+e.message);}}
+async function updateFTP(){var v=document.getElementById("ftp-value").value;if(!v||isNaN(v)){alert("Enter a valid FTP value");return;}try{await apiPost("/training/ftp?ftp="+encodeURIComponent(v));alert("FTP saved as "+v+"W");}catch(e){alert("Error: "+e.message);}}
