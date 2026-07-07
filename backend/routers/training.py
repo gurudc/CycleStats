@@ -52,6 +52,16 @@ def power_profile(db: Session = Depends(get_db), ftp: float = None,         _ses
     return {"profile": profile}
 
 
+@router.post("/ftp")
+def save_ftp(ftp: float = 236,     _session = Depends(require_session)):
+    import json, os
+    ftp_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "ftp_setting.json")
+    os.makedirs(os.path.dirname(ftp_file), exist_ok=True)
+    with open(ftp_file, "w") as f:
+        json.dump({"ftp": ftp}, f)
+    return {"ftp": ftp, "saved": True}
+
+
 @router.get("/ftp")
 def ftp_estimate(db: Session = Depends(get_db),         _session = Depends(require_session)):
     """Estimate FTP from historical data or use persisted setting."""
