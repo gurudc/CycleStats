@@ -54,7 +54,7 @@ var chartInstances = {};
 function destroyChart(id) { if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; } }
 function smoothData(arr, w) { w = w || 3; var r = []; for (var i = 0; i < arr.length; i++) { var s = 0, c = 0; for (var j = Math.max(0, i-w+1); j <= i; j++) { s += arr[j] || 0; c++; } r.push(s / c); } return r; }
 
-async function apiGet(path) { var r = await fetch("/api" + path); if (!r.ok) { try { var e = await r.json(); throw Error(e.detail || r.statusText); } catch(er) { throw Error(er.message || "GET " + path + " failed"); } } return r.json(); }
+async function apiGet(path) { var r = await fetch("/api" + path, {credentials: "include"}); if (!r.ok) { try { var e = await r.json(); throw Error(e.detail || r.statusText); } catch(er) { throw Error(er.message || "GET " + path + " failed"); } } return r.json(); }
 async function apiPost(path, body) { var r = await fetch("/api" + path, { method: "POST", credentials: "include", headers: body ? {"Content-Type": "application/json"} : {}, body: body ? JSON.stringify(body) : undefined }); if (!r.ok) { try { var e = await r.json(); throw Error(e.detail || r.statusText); } catch(er) { throw Error(er.message || "POST " + path + " failed"); } } return r.json(); }
 
 function formatTime(t) { if (!t || t <= 0) return "0:00"; var h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = Math.floor(t % 60); return h > 0 ? h + ":" + (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s : m + ":" + (s < 10 ? "0" : "") + s; }
