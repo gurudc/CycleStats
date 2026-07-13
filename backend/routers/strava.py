@@ -130,7 +130,13 @@ def import_activities(limit: int = 50, db = Depends(get_db), client: StravaClien
         imported = max(0, imported - 1)
         skipped += 1
     if imported > 0:
-        # Trigger PMC backfill + coach note in background process
+        # Backfill PMC table inline (fast, <1s)
+        try:
+            from services.training_load import update_training_load
+            update_training_load(db)
+        except Exception:
+            pass
+        # Trigger coach note in background
         try:
             import subprocess, sys, os
             subprocess.Popen(
