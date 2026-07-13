@@ -279,12 +279,12 @@ class DailyTrainingLoad(Base):
     def to_dict(self):
         return {
             "date": self.date.isoformat() if self.date else None,
-            "daily_tss": round(self.daily_tss, 1),
-            "daily_kj": round(self.daily_kj) if self.daily_kj else 0,
-            "daily_distance_km": round(self.daily_distance_km, 2),
-            "ctl": round(self.ctl, 1),
-            "atl": round(self.atl, 1),
-            "tsb": round(self.tsb, 1),
+            "daily_tss": round(self.daily_tss or 0, 1),
+            "daily_kj": round(self.daily_kj or 0),
+            "daily_distance_km": round(self.daily_distance_km or 0, 2),
+            "ctl": round(self.ctl or 0, 1),
+            "atl": round(self.atl or 0, 1),
+            "tsb": round(self.tsb or 0, 1),
         }
 
 
